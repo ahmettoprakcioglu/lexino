@@ -28,7 +28,7 @@ const validatePassword = (password: string): boolean => {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  isLoading: false,
+  isLoading: true,
   error: null,
   signIn: async (email: string, password: string, rememberMe = false) => {
     try {

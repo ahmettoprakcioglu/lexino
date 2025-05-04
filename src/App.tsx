@@ -11,6 +11,10 @@ import { AppProvider } from './providers/app-provider'
 import { useAuthStore } from './stores/auth.store'
 import { Toaster } from './components/toaster'
 import { Loader2 } from 'lucide-react'
+import Lists from './pages/Lists'
+import CreateList from './pages/CreateList'
+import ListDetail from './pages/ListDetail'
+import Home from './pages/Home'
 
 function LoadingSpinner() {
   return (
@@ -61,15 +65,20 @@ function App() {
             <Navbar />
             <main className="container mx-auto px-4 py-8 pt-24">
               <Routes>
-                <Route path="/" element={<div>Home Page</div>} />
-                <Route path="/list" element={
+                <Route path="/" element={<Home />} />
+                <Route path="/lists" element={
                   <ProtectedRoute>
-                    <div>List Page</div>
+                    <Lists />
                   </ProtectedRoute>
                 } />
-                <Route path="/practice" element={
+                <Route path="/create-list" element={
                   <ProtectedRoute>
-                    <div>Practice Page</div>
+                    <CreateList />
+                  </ProtectedRoute>
+                } />
+                <Route path="/lists/:id" element={
+                  <ProtectedRoute>
+                    <ListDetail />
                   </ProtectedRoute>
                 } />
                 <Route path="/signup" element={
