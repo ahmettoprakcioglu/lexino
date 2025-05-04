@@ -1,5 +1,5 @@
 import { Button } from "./ui/button"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { cn } from "../lib/utils"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuthStore } from "@/stores/auth.store"
@@ -8,12 +8,14 @@ import { toast } from "sonner"
 
 const Navbar = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const { user, signOut } = useAuthStore()
 
   const signOutMutation = useMutation({
     mutationFn: () => signOut(),
     onSuccess: () => {
       toast.success("Successfully signed out!")
+      navigate("/signin")
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to sign out")

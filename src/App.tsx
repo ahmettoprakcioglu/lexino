@@ -4,19 +4,31 @@ import './App.css'
 import { ThemeProvider } from './components/theme-provider'
 import SignUpPage from './pages/SignUp'
 import SignInPage from './pages/SignIn'
+import ForgotPasswordPage from './pages/ForgotPassword'
+import ResetPasswordPage from './pages/ResetPassword'
+import AuthCallback from './pages/AuthCallback'
 import { AppProvider } from './providers/app-provider'
 import { useAuthStore } from './stores/auth.store'
 import { Toaster } from './components/toaster'
+import { Loader2 } from 'lucide-react'
+
+function LoadingSpinner() {
+  return (
+    <div className="min-h-[85vh] flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore()
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <LoadingSpinner />
   }
 
   if (!user) {
-    return <Navigate to="/signin" />
+    return <Navigate to="/signin" replace />
   }
 
   return <>{children}</>
@@ -26,11 +38,11 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore()
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <LoadingSpinner />
   }
 
   if (user) {
-    return <Navigate to="/" />
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>
@@ -66,6 +78,17 @@ function App() {
                     <SignInPage />
                   </PublicRoute>
                 } />
+                <Route path="/forgot-password" element={
+                  <PublicRoute>
+                    <ForgotPasswordPage />
+                  </PublicRoute>
+                } />
+                <Route path="/reset-password" element={
+                  <PublicRoute>
+                    <ResetPasswordPage />
+                  </PublicRoute>
+                } />
+                <Route path="/auth/callback" element={<AuthCallback />} />
               </Routes>
             </main>
             <Toaster />

@@ -16,9 +16,10 @@ import * as z from "zod"
 import { Form } from "@/components/ui/form"
 import { FormError } from "@/components/ui/form-error"
 import { useAuthStore } from "@/stores/auth.store"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const signInSchema = z.object({
   email: z.string().min(1, "Please enter your email address").email("Please enter a valid email address"),
@@ -43,7 +44,7 @@ export default function SignInPage() {
   })
 
   const signInMutation = useMutation({
-    mutationFn: (data: FormData) => signIn(data.email, data.password),
+    mutationFn: (data: FormData) => signIn(data.email, data.password, data.rememberMe),
     onSuccess: () => {
       toast.success("Successfully signed in!")
       navigate("/")
@@ -117,17 +118,21 @@ export default function SignInPage() {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    id="rememberMe"
                     {...form.register("rememberMe")}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                     disabled={signInMutation.isPending}
                   />
-                  <label className="text-sm text-muted-foreground">Remember me</label>
+                  <label 
+                    htmlFor="rememberMe" 
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
+                    Remember me
+                  </label>
                 </div>
-                <a href="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </CardContent>
 
@@ -141,9 +146,9 @@ export default function SignInPage() {
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <a href="/signup" className="text-primary hover:underline">
+                <Link to="/signup" className="text-primary hover:underline">
                   Sign Up
-                </a>
+                </Link>
               </p>
             </CardFooter>
           </form>

@@ -16,9 +16,10 @@ import * as z from "zod"
 import { Form } from "@/components/ui/form"
 import { FormError } from "@/components/ui/form-error"
 import { useAuthStore } from "@/stores/auth.store"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const signUpSchema = z.object({
   fullName: z.string().min(1, "Please enter your full name"),
@@ -172,24 +173,22 @@ export default function SignUpPage() {
 
               {/* Terms */}
               <div className="flex items-start space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
+                  id="terms"
                   {...form.register("terms")}
-                  className={`h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 ${
-                    form.formState.errors.terms ? "border-red-500 dark:border-red-400" : ""
-                  }`}
+                  className={form.formState.errors.terms ? "border-red-500 dark:border-red-400" : ""}
                   disabled={signUpMutation.isPending}
                 />
                 <div className="space-y-1">
-                  <label className="text-sm text-muted-foreground">
+                  <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
                     I agree to the{" "}
-                    <a href="#" className="text-primary hover:underline">
+                    <Link to="/terms" className="text-primary hover:underline">
                       Terms of Service
-                    </a>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <a href="#" className="text-primary hover:underline">
+                    <Link to="/privacy" className="text-primary hover:underline">
                       Privacy Policy
-                    </a>
+                    </Link>
                   </label>
                   <FormError message={form.formState.errors.terms?.message} />
                 </div>
@@ -206,9 +205,9 @@ export default function SignUpPage() {
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <a href="/signin" className="text-primary hover:underline">
+                <Link to="/signin" className="text-primary hover:underline">
                   Sign In
-                </a>
+                </Link>
               </p>
             </CardFooter>
           </form>

@@ -17,19 +17,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setUser = useAuthStore((state) => state.setUser)
 
   useEffect(() => {
-    // Get initial session
+    let subscription: { unsubscribe: () => void } | null = null
+
+    // Get initial session and set up auth listener
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+
+      // Set up auth listener
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null)
+      })
+
+      subscription = sub
+    }).catch((error) => {
+      console.error('Error in auth initialization:', error)
+      setUser(null)
     })
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
   }, [setUser])
 
   return (

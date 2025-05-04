@@ -1,67 +1,181 @@
 import { create } from 'zustand'
 import { supabase, type SupabaseUser } from '@/lib/supabase'
+import { AuthError as SupabaseAuthError } from '@supabase/supabase-js'
+
+interface AuthError {
+  message: string
+  code?: string
+}
 
 interface AuthState {
   user: SupabaseUser | null
   isLoading: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  error: AuthError | null
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<void>
   signOut: () => Promise<void>
   setUser: (user: SupabaseUser | null) => void
+  resetPassword: (email: string) => Promise<void>
+  updatePassword: (newPassword: string) => Promise<void>
+  clearError: () => void
+}
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
+
+const validatePassword = (password: string): boolean => {
+  return PASSWORD_REGEX.test(password)
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  isLoading: true,
-  signIn: async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
-  },
-  signUp: async (email: string, password: string, fullName: string) => {
-    // First check if the email exists by trying to sign in with a random password
-    const { error: checkError } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'random-password-to-check-existence',
-    })
+  isLoading: false,
+  error: null,
+  signIn: async (email: string, password: string, rememberMe = false) => {
+    try {
+      set({ isLoading: true, error: null })
 
-    // If there's no error or the error is about wrong password, the email exists
-    if (!checkError || checkError.message === 'Invalid login credentials') {
-      throw new Error('An account with this email already exists. Please sign in instead.')
-    }
+      // Clear any existing session
+      await supabase.auth.signOut()
 
-    // If we get here, the email doesn't exist, proceed with signup
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      
+      if (error) throw error
 
-    if (error) {
+      // Update user state after successful sign in
+      set({ user: data.user, error: null, isLoading: false })
+
+      if (!rememberMe) {
+        window.addEventListener('beforeunload', () => {
+          supabase.auth.signOut()
+        })
+      }
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign in',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false, user: null })
       throw error
     }
+  },
+  signUp: async (email: string, password: string, fullName: string) => {
+    try {
+      set({ isLoading: true, error: null })
 
-    // If no error but also no user data, something went wrong
-    if (!data?.user) {
-      throw new Error('Failed to create account. Please try again.')
-    }
+      if (!validatePassword(password)) {
+        throw new Error('Password must be at least 8 characters and contain uppercase, lowercase, and numbers')
+      }
 
-    // Check if email confirmation is required
-    if (!data.user.confirmed_at) {
-      throw new Error('Please check your email to verify your account.')
+      const { error: checkError } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'random-password-to-check-existence',
+      })
+
+      if (!checkError || checkError.message === 'Invalid login credentials') {
+        throw new Error('An account with this email already exists. Please sign in instead.')
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+      if (!data?.user) throw new Error('Failed to create account. Please try again.')
+      if (!data.user.confirmed_at) throw new Error('Please check your email to verify your account.')
+
+      set({ error: null, isLoading: false })
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign up',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false })
+      throw error
     }
   },
   signOut: async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    set({ user: null })
+    try {
+      set({ isLoading: true, error: null })
+
+      // Clear any existing session
+      await supabase.auth.signOut()
+      
+      set({ user: null, error: null, isLoading: false })
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign out',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false })
+      throw error
+    }
   },
   setUser: (user) => set({ user, isLoading: false }),
+  resetPassword: async (email: string) => {
+    try {
+      set({ isLoading: true, error: null })
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      if (error) throw error
+      set({ error: null, isLoading: false })
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to reset password',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false })
+      throw error
+    }
+  },
+  updatePassword: async (newPassword: string) => {
+    try {
+      set({ isLoading: true, error: null })
+
+      if (!validatePassword(newPassword)) {
+        throw new Error('Password must be at least 8 characters and contain uppercase, lowercase, and numbers')
+      }
+
+      // First, get the current session to check if we're actually logged in
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session found. Please try resetting your password again.')
+      }
+
+      // Update the password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (error) {
+        // If the error is about same password, sign out and redirect
+        if (error.message.toLowerCase().includes('same password')) {
+          await supabase.auth.signOut()
+          throw new Error('New password must be different from your current password')
+        }
+        throw error
+      }
+
+      // After successful password update, sign out to require new login
+      await supabase.auth.signOut()
+      set({ user: null, error: null, isLoading: false })
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to update password',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false })
+      throw error
+    }
+  },
+  clearError: () => set({ error: null }),
 })) 
