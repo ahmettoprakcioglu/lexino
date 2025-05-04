@@ -4,38 +4,18 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, Pencil, Trash2, Layout } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { supabase } from "@/lib/supabase"
+import { supabase, cachedSupabaseQuery } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui"
-
-interface Word {
-  id: string
-  original: string
-  translation: string
-  example?: string
-  pronunciation?: string
-  difficulty: "easy" | "medium" | "hard"
-  learning_status: "learned" | "learning" | "not_learned"
-  added_at: string
-  last_practiced?: string
-  list_id: string
-  user_id: string
-}
+import { DataTable } from "@/components/data-table/data-table"
+import { columns } from "@/components/data-table/columns"
 
 interface List {
   id: string
   name: string
-  description?: string
-  category: string
+  description: string | null
+  category: string | null
   is_public: boolean
   created_at: string
   word_count: number
@@ -48,20 +28,24 @@ export default function ListDetail() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [list, setList] = useState<List | null>(null)
-  const [words, setWords] = useState<Word[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const fetchListAndWords = async () => {
+    const fetchListDetails = async () => {
       try {
         if (!id || !user) return
 
-        // Fetch list details
-        const { data: listData, error: listError } = await supabase
-          .from('lists')
-          .select('*')
-          .eq('id', id)
-          .single()
+        setIsLoading(true)
+        
+        // Use cached query for list details
+        const { data: listData, error: listError } = await cachedSupabaseQuery<List>(
+          `list-${id}`,
+          async () => await supabase
+            .from('lists')
+            .select('*')
+            .eq('id', id)
+            .single()
+        )
 
         if (listError) throw listError
         if (!listData) throw new Error('List not found')
@@ -74,17 +58,6 @@ export default function ListDetail() {
         }
 
         setList(listData)
-
-        // Fetch words in the list
-        const { data: wordsData, error: wordsError } = await supabase
-          .from('words')
-          .select('*')
-          .eq('list_id', id)
-          .order('added_at', { ascending: false })
-
-        if (wordsError) throw wordsError
-
-        setWords(wordsData || [])
       } catch (error) {
         console.error("Error fetching list details:", error)
         toast.error(error instanceof Error ? error.message : 'Failed to load list details')
@@ -94,7 +67,7 @@ export default function ListDetail() {
       }
     }
 
-    fetchListAndWords()
+    fetchListDetails()
   }, [id, user, navigate])
 
   const handleDeleteList = async () => {
@@ -114,24 +87,6 @@ export default function ListDetail() {
     } catch (error) {
       console.error("Error deleting list:", error)
       toast.error(error instanceof Error ? error.message : 'Failed to delete list')
-    }
-  }
-
-  const handleDeleteWord = async (wordId: string) => {
-    try {
-      const { error } = await supabase
-        .from('words')
-        .delete()
-        .eq('id', wordId)
-        .eq('user_id', user?.id)
-
-      if (error) throw error
-
-      setWords(words.filter(word => word.id !== wordId))
-      toast.success("Word deleted successfully")
-    } catch (error) {
-      console.error("Error deleting word:", error)
-      toast.error(error instanceof Error ? error.message : 'Failed to delete word')
     }
   }
 
@@ -174,32 +129,6 @@ export default function ListDetail() {
     )
   }
 
-  const getStatusColor = (status: Word["learning_status"]) => {
-    switch (status) {
-      case "learned":
-        return "bg-green-500"
-      case "learning":
-        return "bg-yellow-500"
-      case "not_learned":
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
-
-  const getDifficultyColor = (difficulty: Word["difficulty"]) => {
-    switch (difficulty) {
-      case "easy":
-        return "text-green-500"
-      case "medium":
-        return "text-yellow-500"
-      case "hard":
-        return "text-red-500"
-      default:
-        return "text-gray-500"
-    }
-  }
-
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
@@ -214,7 +143,7 @@ export default function ListDetail() {
           <Button
             variant="outline"
             onClick={() => navigate(`/lists/${id}/flashcards`)}
-            disabled={words.length === 0}
+            disabled={list.word_count === 0}
           >
             <Layout className="mr-2 h-4 w-4" />
             Practice with Flashcards
@@ -235,7 +164,14 @@ export default function ListDetail() {
                 {list.is_public ? "Public" : "Private"}
               </Badge>
             </div>
-            <p className="text-muted-foreground mb-2">{list.description}</p>
+            {list.description && (
+              <p className="text-muted-foreground mb-2">{list.description}</p>
+            )}
+            {list.category && (
+              <p className="text-sm text-muted-foreground">
+                Category: {list.category}
+              </p>
+            )}
             <div className="text-sm text-muted-foreground">
               Created on {format(new Date(list.created_at), "MMM d, yyyy")} • {list.word_count} words
             </div>
@@ -259,81 +195,7 @@ export default function ListDetail() {
           <h2 className="text-xl font-semibold">Words</h2>
         </div>
 
-        {words.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">No Words Yet</h3>
-            <p className="text-muted-foreground mb-4">Start adding words to your list!</p>
-            <Button onClick={() => navigate(`/lists/${id}/add-word`)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Your First Word
-            </Button>
-          </div>
-        ) : (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Word</TableHead>
-                  <TableHead>Translation</TableHead>
-                  <TableHead>Example</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added</TableHead>
-                  <TableHead>Last Practiced</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {words.map((word) => (
-                  <TableRow key={word.id}>
-                    <TableCell className="font-medium">{word.original}</TableCell>
-                    <TableCell>{word.translation}</TableCell>
-                    <TableCell className="max-w-xs truncate">{word.example}</TableCell>
-                    <TableCell>
-                      <span className={getDifficultyColor(word.difficulty)}>
-                        {word.difficulty.charAt(0).toUpperCase() + word.difficulty.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(word.learning_status)}`} />
-                        {word.learning_status.split("_").map(word => 
-                          word.charAt(0).toUpperCase() + word.slice(1)
-                        ).join(" ")}
-                      </div>
-                    </TableCell>
-                    <TableCell>{format(new Date(word.added_at), "MMM d, yyyy")}</TableCell>
-                    <TableCell>
-                      {word.last_practiced 
-                        ? format(new Date(word.last_practiced), "MMM d, yyyy")
-                        : "Never"
-                      }
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => navigate(`/lists/${id}/words/${word.id}/edit`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => handleDeleteWord(word.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        {list && <DataTable columns={columns} listId={id!} />}
       </div>
     </div>
   )

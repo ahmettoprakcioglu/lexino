@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Clock } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
@@ -201,8 +201,13 @@ export default function EditWord() {
         </form>
 
         {updatedAt && (
-          <div className="mt-6 text-sm text-muted-foreground text-center">
-            Last updated: {format(new Date(updatedAt), "MMM d, yyyy 'at' h:mm a")}
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>
+                Last updated: {format(new Date(updatedAt), "MMMM d, yyyy 'at' h:mm a")}
+              </span>
+            </div>
           </div>
         )}
       </div>
