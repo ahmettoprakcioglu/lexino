@@ -14,6 +14,7 @@ import { DeleteConfirmModal } from "@/components/lists/DeleteConfirmModal"
 import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LearningReminders } from "@/components/lists/LearningReminders"
 
 // Custom hook for learning goals
 function useLearningGoals(listId: string, userId: string) {
@@ -227,6 +228,10 @@ export default function ListDetail() {
               <div className="text-2xl font-bold">{goals?.daily_word_goal || 0} words/day</div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <LearningReminders listId={listId!} userId={user!.id} comingSoon={true} />
         </div>
 
         <div className="flex justify-between items-center mb-6">

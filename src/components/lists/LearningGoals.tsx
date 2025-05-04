@@ -20,6 +20,7 @@ interface Goals {
 
 export function LearningGoals({ listId, userId }: LearningGoalsProps) {
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [goals, setGoals] = useState<Goals>({
     daily_word_goal: 5,
     weekly_review_goal: 20
@@ -79,6 +80,7 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
 
   const handleSaveGoals = async () => {
     try {
+      setIsSaving(true)
       const { error } = await supabase
         .from('learning_goals')
         .upsert({
@@ -86,6 +88,8 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
           user_id: userId,
           daily_word_goal: tempGoals.daily_word_goal,
           weekly_review_goal: tempGoals.weekly_review_goal
+        }, {
+          onConflict: 'user_id,list_id'
         })
 
       if (error) throw error
@@ -96,6 +100,8 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
     } catch (error) {
       console.error('Error updating learning goals:', error)
       toast.error('Failed to update learning goals')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -137,14 +143,25 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
                 <Label htmlFor="daily-goal">Daily Word Goal</Label>
                 <Input
                   id="daily-goal"
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   value={tempGoals.daily_word_goal}
-                  onChange={(e) => setTempGoals(prev => ({
-                    ...prev,
-                    daily_word_goal: parseInt(e.target.value) || 1
-                  }))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    setTempGoals(prev => ({
+                      ...prev,
+                      daily_word_goal: value === '' ? 0 : parseInt(value)
+                    }))
+                  }}
+                  onBlur={(e) => {
+                    const value = Math.max(1, parseInt(e.target.value) || 1)
+                    setTempGoals(prev => ({
+                      ...prev,
+                      daily_word_goal: value
+                    }))
+                  }}
                 />
                 <p className="text-sm text-muted-foreground">
                   Number of new words you want to learn each day
@@ -154,14 +171,25 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
                 <Label htmlFor="weekly-goal">Weekly Review Goal</Label>
                 <Input
                   id="weekly-goal"
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   value={tempGoals.weekly_review_goal}
-                  onChange={(e) => setTempGoals(prev => ({
-                    ...prev,
-                    weekly_review_goal: parseInt(e.target.value) || 1
-                  }))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    setTempGoals(prev => ({
+                      ...prev,
+                      weekly_review_goal: value === '' ? 0 : parseInt(value)
+                    }))
+                  }}
+                  onBlur={(e) => {
+                    const value = Math.max(1, parseInt(e.target.value) || 1)
+                    setTempGoals(prev => ({
+                      ...prev,
+                      weekly_review_goal: value
+                    }))
+                  }}
                 />
                 <p className="text-sm text-muted-foreground">
                   Number of words you want to review each week
@@ -169,11 +197,11 @@ export function LearningGoals({ listId, userId }: LearningGoalsProps) {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveGoals}>
-                Save Goals
+              <Button onClick={handleSaveGoals} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Goals"}
               </Button>
             </DialogFooter>
           </DialogContent>

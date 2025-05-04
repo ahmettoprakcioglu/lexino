@@ -13,6 +13,7 @@ import { Bell, Settings2, Trash2 } from 'lucide-react'
 interface LearningRemindersProps {
   listId: string
   userId: string
+  comingSoon?: boolean
 }
 
 interface Reminder {
@@ -23,7 +24,7 @@ interface Reminder {
   notification_type: 'email' | 'push'
 }
 
-export function LearningReminders({ listId, userId }: LearningRemindersProps) {
+export function LearningReminders({ listId, userId, comingSoon = true }: LearningRemindersProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -35,6 +36,8 @@ export function LearningReminders({ listId, userId }: LearningRemindersProps) {
   })
 
   useEffect(() => {
+    if (comingSoon) return
+    
     const fetchReminders = async () => {
       try {
         setIsLoading(true)
@@ -58,7 +61,7 @@ export function LearningReminders({ listId, userId }: LearningRemindersProps) {
     }
 
     fetchReminders()
-  }, [listId, userId])
+  }, [listId, userId, comingSoon])
 
   const handleAddReminder = async () => {
     try {
@@ -131,6 +134,27 @@ export function LearningReminders({ listId, userId }: LearningRemindersProps) {
     if (days.length === 7) return 'Every day'
     if (days.length === 5 && !days.includes('saturday') && !days.includes('sunday')) return 'Weekdays'
     return days.map(day => day.charAt(0).toUpperCase() + day.slice(1, 3)).join(', ')
+  }
+
+  if (comingSoon) {
+    return (
+      <Card className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/5 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="bg-background/95 px-4 py-2 rounded-full font-semibold text-muted-foreground border shadow-sm">
+            Coming Soon
+          </div>
+        </div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 opacity-50">
+          <CardTitle className="text-sm font-medium">Learning Reminders</CardTitle>
+          <Bell className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="opacity-50">
+          <p className="text-sm text-muted-foreground">
+            Set up personalized reminders for your learning schedule. Get notified when it's time to review your words.
+          </p>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (isLoading) {
