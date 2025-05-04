@@ -64,11 +64,19 @@ const Navbar = () => {
         <div className="flex items-center space-x-4">
           <ThemeToggle />
           <div className="h-5 w-[1px] bg-border mx-2" />
-          <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-            Sign In
-          </Button>
+          <Link to="/signin">
+            <Button variant="ghost" size="sm" className={cn(
+              "hover:bg-primary/10",
+              isActivePath("/signin") && "bg-primary/10 text-primary"
+            )}>
+              Sign In
+            </Button>
+          </Link>
           <Link to="/signup">
-            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90">
+            <Button size="sm" className={cn(
+              "bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90",
+              isActivePath("/signup") && "opacity-90"
+            )}>
               Sign Up
             </Button>
           </Link>

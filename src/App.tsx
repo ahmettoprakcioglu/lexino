@@ -3,6 +3,7 @@ import Navbar from './components/Navbar'
 import './App.css'
 import { ThemeProvider } from './components/theme-provider'
 import SignUpPage from './pages/SignUp'
+import SignInPage from './pages/SignIn'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
               <Route path="/list" element={<div>List Page</div>} />
               <Route path="/practice" element={<div>Practice Page</div>} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/signin" element={<SignInPage />} />
             </Routes>
           </main>
         </div>
