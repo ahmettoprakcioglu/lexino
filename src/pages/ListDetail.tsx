@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Pencil, Trash2, Layout } from "lucide-react"
+import { ArrowLeft, Plus, Pencil, Layout } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase"
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui"
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "@/components/data-table/columns"
 import { useList } from "@/hooks/useList"
+import { DeleteConfirmModal } from "@/components/lists/DeleteConfirmModal"
 
 export default function ListDetail() {
   const { id } = useParams()
@@ -127,14 +128,11 @@ export default function ListDetail() {
             <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${id}/edit`)}>
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="text-red-500 hover:text-red-600"
-              onClick={handleDeleteList}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <DeleteConfirmModal
+              itemType="list"
+              itemName={list.name}
+              onConfirm={handleDeleteList}
+            />
           </div>
         </div>
 
