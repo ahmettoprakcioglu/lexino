@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import { DataTableRowActions } from "./data-table-row-actions"
 import { format } from "date-fns"
+import { StatusChangePopover } from "@/components/lists/StatusChangePopover"
 
 export type Word = {
   id: string
@@ -19,6 +20,7 @@ export type Word = {
   last_practiced: string | null
   list_id: string
   user_id: string
+  onStatusChange?: (newStatus: "not_learned" | "learning" | "learned") => void
 }
 
 export const columns: ColumnDef<Word>[] = [
@@ -77,8 +79,8 @@ export const columns: ColumnDef<Word>[] = [
       const difficulty = row.getValue("difficulty") as string
       return (
         <Badge variant={
-          difficulty === "easy" ? "success" :
-          difficulty === "medium" ? "warning" :
+          difficulty === "easy" ? "default" :
+          difficulty === "medium" ? "secondary" :
           "destructive"
         }>
           {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
@@ -95,17 +97,14 @@ export const columns: ColumnDef<Word>[] = [
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = row.getValue("learning_status") as string
+      const status = row.getValue("learning_status") as "not_learned" | "learning" | "learned"
       return (
-        <Badge variant={
-          status === "learned" ? "success" :
-          status === "learning" ? "warning" :
-          "default"
-        }>
-          {status.split("_").map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(" ")}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <StatusChangePopover 
+            status={status} 
+            onStatusChange={(newStatus) => row.original.onStatusChange?.(newStatus)} 
+          />
+        </div>
       )
     },
     filterFn: (row, id, value) => {
@@ -131,6 +130,6 @@ export const columns: ColumnDef<Word>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => <DataTableRowActions row={row} onDelete={() => {}} />,
   },
 ] 

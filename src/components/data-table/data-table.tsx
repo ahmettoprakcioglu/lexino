@@ -34,27 +34,67 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { DataTableRowActions } from "./data-table-row-actions.tsx"
 import { debounce } from "lodash"
+import { toast } from "sonner"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   listId: string
+  onStatusChange?: () => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   listId,
+  onStatusChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [data, setData] = useState<TData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
   const [totalRows, setTotalRows] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuthStore()
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
-  // Fetch data from Supabase with pagination, sorting, and filtering
+  const handleStatusChange = async (wordId: string, newStatus: "not_learned" | "learning" | "learned") => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('words')
+        .update({
+          learning_status: newStatus,
+          last_practiced: new Date().toISOString()
+        })
+        .eq('id', wordId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Update local state
+      setData(prevData => 
+        prevData.map(item => {
+          const word = item as Word
+          if (word.id === wordId) {
+            return {
+              ...word,
+              learning_status: newStatus,
+              last_practiced: new Date().toISOString()
+            }
+          }
+          return item
+        }) as TData[]
+      )
+
+      toast.success("Status updated successfully")
+      onStatusChange?.()
+    } catch (error) {
+      console.error('Error updating word status:', error)
+      toast.error('Failed to update status')
+    }
+  }
+
   const fetchData = useCallback(async () => {
     if (!user || !listId) return
 
@@ -95,7 +135,14 @@ export function DataTable<TData, TValue>({
 
       if (error) throw error
 
-      setData(words as TData[])
+      // Add onStatusChange handler to each word
+      const wordsWithHandlers = words.map(word => ({
+        ...word,
+        onStatusChange: (newStatus: "not_learned" | "learning" | "learned") => 
+          handleStatusChange(word.id, newStatus)
+      }))
+
+      setData(wordsWithHandlers as TData[])
       if (count !== null) setTotalRows(count)
     } catch (error) {
       console.error('Error fetching words:', error)

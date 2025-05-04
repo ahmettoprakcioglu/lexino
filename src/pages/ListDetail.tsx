@@ -10,13 +10,22 @@ import { Skeleton } from "@/components/ui"
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "@/components/data-table/columns"
 import { useList } from "@/hooks/useList"
+import { useListStats } from "@/hooks/useListStats"
 import { DeleteConfirmModal } from "@/components/lists/DeleteConfirmModal"
+import { ListStats } from "@/components/lists/ListStats"
+import { useState } from "react"
 
 export default function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const [statsKey, setStatsKey] = useState(0)
   const { list, isLoading, error } = useList(id, user?.id)
+  const stats = useListStats(id, statsKey)
+
+  const handleStatusChange = () => {
+    setStatsKey(prev => prev + 1)
+  }
 
   const handleDeleteList = async () => {
     try {
@@ -137,10 +146,30 @@ export default function ListDetail() {
         </div>
 
         <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Statistics</h2>
+        </div>
+
+        {!stats.isLoading && !stats.error && (
+          <ListStats
+            totalWords={stats.totalWords}
+            learned={stats.learned}
+            learning={stats.learning}
+            notLearned={stats.notLearned}
+            easy={stats.easy}
+            medium={stats.medium}
+            hard={stats.hard}
+          />
+        )}
+
+        <div className="flex justify-between items-center mb-6 mt-8">
           <h2 className="text-xl font-semibold">Words</h2>
         </div>
 
-        <DataTable columns={columns} listId={id!} />
+        <DataTable 
+          columns={columns} 
+          listId={id!} 
+          onStatusChange={handleStatusChange}
+        />
       </div>
     </div>
   )

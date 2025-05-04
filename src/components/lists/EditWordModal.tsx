@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
+import { StatusChangePopover } from "./StatusChangePopover"
 
 interface Word {
   id: string
@@ -138,19 +139,12 @@ export function EditWordModal({ word, onEditWord }: EditWordModalProps) {
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select 
-                value={learningStatus} 
-                onValueChange={(value: "learned" | "learning" | "not_learned") => setLearningStatus(value)}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select learning status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="learned">Learned</SelectItem>
-                  <SelectItem value="learning">Learning</SelectItem>
-                  <SelectItem value="not_learned">Not Learned</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="col-span-3">
+                <StatusChangePopover
+                  status={learningStatus}
+                  onStatusChange={setLearningStatus}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
