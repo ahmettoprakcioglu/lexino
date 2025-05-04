@@ -83,12 +83,12 @@ function App() {
                     <CreateList />
                   </ProtectedRoute>
                 } />
-                <Route path="/lists/:id" element={
+                <Route path="/lists/:listId" element={
                   <ProtectedRoute>
                     <ListDetail />
                   </ProtectedRoute>
                 } />
-                <Route path="/lists/:id/add-word" element={
+                <Route path="/lists/:listId/add-word" element={
                   <ProtectedRoute>
                     <AddWord />
                   </ProtectedRoute>
@@ -103,7 +103,7 @@ function App() {
                     <Flashcards />
                   </ProtectedRoute>
                 } />
-                <Route path="/lists/:id/edit" element={
+                <Route path="/lists/:listId/edit" element={
                   <ProtectedRoute>
                     <EditList />
                   </ProtectedRoute>

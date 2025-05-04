@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Clock } from "lucide-react"
+import { ArrowLeft, Clock, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
@@ -23,8 +23,10 @@ export default function EditWord() {
   const [example, setExample] = useState("")
   const [pronunciation, setPronunciation] = useState("")
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
+  const [learningStatus, setLearningStatus] = useState<"not_learned" | "learning" | "learned">("not_learned")
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
-
+  const [lastPracticed, setLastPracticed] = useState<string | null>(null)
+  
   useEffect(() => {
     const fetchWord = async () => {
       if (!user || !wordId) return
@@ -45,7 +47,9 @@ export default function EditWord() {
           setExample(data.example || "")
           setPronunciation(data.pronunciation || "")
           setDifficulty(data.difficulty)
+          setLearningStatus(data.learning_status)
           setUpdatedAt(data.updated_at)
+          setLastPracticed(data.last_practiced)
         }
       } catch (error) {
         console.error('Error fetching word:', error)
@@ -77,7 +81,9 @@ export default function EditWord() {
           translation,
           example: example || null,
           pronunciation: pronunciation || null,
-          difficulty
+          difficulty,
+          learning_status: learningStatus,
+          last_practiced: learningStatus !== "not_learned" ? new Date().toISOString() : lastPracticed
         })
         .eq('id', wordId)
         .eq('user_id', user.id)
@@ -176,22 +182,42 @@ export default function EditWord() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="difficulty">Difficulty</Label>
-              <Select
-                value={difficulty}
-                onValueChange={(value: "easy" | "medium" | "hard") => setDifficulty(value)}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="difficulty">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulty</Label>
+                <Select
+                  value={difficulty}
+                  onValueChange={(value: "easy" | "medium" | "hard") => setDifficulty(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="difficulty">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="learning_status">Learning Status</Label>
+                <Select
+                  value={learningStatus}
+                  onValueChange={(value: "not_learned" | "learning" | "learned") => setLearningStatus(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="learning_status">
+                    <SelectValue placeholder="Select learning status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_learned">Not Learned</SelectItem>
+                    <SelectItem value="learning">Learning</SelectItem>
+                    <SelectItem value="learned">Learned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -200,16 +226,22 @@ export default function EditWord() {
           </Button>
         </form>
 
-        {updatedAt && (
-          <div className="mt-6 pt-6 border-t">
+        <div className="mt-6 pt-6 border-t space-y-4">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>
+              Last updated: {format(new Date(updatedAt || new Date()), "MMMM d, yyyy 'at' h:mm a")}
+            </span>
+          </div>
+          {lastPracticed && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
+              <Calendar className="h-4 w-4" />
               <span>
-                Last updated: {format(new Date(updatedAt), "MMMM d, yyyy 'at' h:mm a")}
+                Last practiced: {format(new Date(lastPracticed), "MMMM d, yyyy 'at' h:mm a")}
               </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

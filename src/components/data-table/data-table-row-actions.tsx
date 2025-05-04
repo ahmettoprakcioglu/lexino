@@ -34,7 +34,7 @@ export function DataTableRowActions({ row, onDelete }: DataTableRowActionsProps)
   const navigate = useNavigate()
   const { listId } = useParams()
   const word = row.original
-
+  
   const handleDelete = async () => {
     try {
       const { error } = await supabase

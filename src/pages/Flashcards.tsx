@@ -48,37 +48,49 @@ export default function Flashcards() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [shuffledWords, setShuffledWords] = useState<Word[]>([])
+  const [loadingProgress, setLoadingProgress] = useState(0)
 
   useEffect(() => {
-    const fetchWords = async () => {
+    const fetchAllWords = async () => {
       if (!user || !listId) return
 
       try {
         setIsLoading(true)
-        console.log('Fetching words for list:', listId)
+        const allWords: DatabaseWord[] = []
+        let page = 0
+        const pageSize = 1000
 
-        const { data, error } = await supabase
-          .from('words')
-          .select('*')
-          .eq('list_id', listId)
-          .eq('user_id', user.id)
-          .order('added_at', { ascending: true })
+        while (true) {
+          const { data, error } = await supabase
+            .from('words')
+            .select('*')
+            .eq('list_id', listId)
+            .eq('user_id', user.id)
+            .order('added_at', { ascending: true })
+            .range(page * pageSize, (page + 1) * pageSize - 1)
 
-        if (error) {
-          console.error('Supabase error:', error)
-          throw error
+          if (error) {
+            console.error('Supabase error:', error)
+            throw error
+          }
+
+          if (!data || data.length === 0) break
+
+          allWords.push(...data)
+          
+          // Update loading progress
+          if (data.length === pageSize) {
+            setLoadingProgress((page + 1) * pageSize)
+          }
+
+          if (data.length < pageSize) break
+          page++
         }
 
-        console.log('Fetched words:', data)
-
-        if (!data) {
-          console.log('No words found')
-          setWords([])
-          return
-        }
+        console.log('Fetched total words:', allWords.length)
 
         // Transform and validate data
-        const transformedData = (data as DatabaseWord[]).map(validateWord)
+        const transformedData = allWords.map(validateWord)
         console.log('Transformed data:', transformedData)
 
         setWords(transformedData)
@@ -89,10 +101,11 @@ export default function Flashcards() {
         navigate(`/lists/${listId}`)
       } finally {
         setIsLoading(false)
+        setLoadingProgress(0) // Reset progress
       }
     }
 
-    fetchWords()
+    fetchAllWords()
   }, [listId, user, navigate])
 
   const shuffleArray = (array: Word[]) => {
@@ -168,9 +181,14 @@ export default function Flashcards() {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 max-w-2xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-32 bg-muted rounded"></div>
-          <div className="h-64 w-full bg-muted rounded"></div>
+        <div className="space-y-4">
+          <div className="h-8 w-32 bg-muted rounded animate-pulse"></div>
+          <div className="h-64 w-full bg-muted rounded animate-pulse"></div>
+          {loadingProgress > 0 && (
+            <div className="text-center text-sm text-muted-foreground">
+              Loading words... ({loadingProgress} loaded)
+            </div>
+          )}
         </div>
       </div>
     )

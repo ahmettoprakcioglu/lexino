@@ -16,12 +16,12 @@ import { ListStats } from "@/components/lists/ListStats"
 import { useState } from "react"
 
 export default function ListDetail() {
-  const { id } = useParams()
+  const { listId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [statsKey, setStatsKey] = useState(0)
-  const { list, isLoading, error } = useList(id, user?.id)
-  const stats = useListStats(id, statsKey)
+  const { list, isLoading, error } = useList(listId, user?.id)
+  const stats = useListStats(listId, statsKey)
 
   const handleStatusChange = () => {
     setStatsKey(prev => prev + 1)
@@ -29,12 +29,12 @@ export default function ListDetail() {
 
   const handleDeleteList = async () => {
     try {
-      if (!id || !user) return
+      if (!listId || !user) return
 
       const { error } = await supabase
         .from('lists')
         .delete()
-        .eq('id', id)
+        .eq('id', listId)
         .eq('user_id', user.id)
 
       if (error) throw error
@@ -99,13 +99,13 @@ export default function ListDetail() {
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
-            onClick={() => navigate(`/lists/${id}/flashcards`)}
+            onClick={() => navigate(`/lists/${listId}/flashcards`)}
             disabled={list.word_count === 0}
           >
             <Layout className="mr-2 h-4 w-4" />
             Practice with Flashcards
           </Button>
-          <Button onClick={() => navigate(`/lists/${id}/add-word`)}>
+          <Button onClick={() => navigate(`/lists/${listId}/add-word`)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Word
           </Button>
@@ -134,7 +134,7 @@ export default function ListDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${id}/edit`)}>
+            <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${listId}/edit`)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <DeleteConfirmModal
@@ -167,7 +167,7 @@ export default function ListDetail() {
 
         <DataTable 
           columns={columns} 
-          listId={id!} 
+          listId={listId!} 
           onStatusChange={handleStatusChange}
         />
       </div>

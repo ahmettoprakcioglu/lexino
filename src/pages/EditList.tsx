@@ -10,18 +10,8 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
 
-interface List {
-  id: string
-  name: string
-  description: string | null
-  category: string
-  is_public: boolean
-  created_at: string
-  user_id: string
-}
-
 export default function EditList() {
-  const { id } = useParams()
+  const { listId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(true)
@@ -34,13 +24,13 @@ export default function EditList() {
 
   useEffect(() => {
     const fetchList = async () => {
-      if (!user || !id) return
+      if (!user || !listId) return
 
       try {
         const { data, error } = await supabase
           .from('lists')
           .select('*')
-          .eq('id', id)
+          .eq('id', listId)
           .single()
 
         if (error) throw error
@@ -72,12 +62,12 @@ export default function EditList() {
     }
 
     fetchList()
-  }, [id, user, navigate])
+  }, [listId, user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!user || !id) {
+    if (!user || !listId) {
       toast.error("Something went wrong")
       return
     }
@@ -98,13 +88,13 @@ export default function EditList() {
           category: category.trim(),
           is_public: isPublic
         })
-        .eq('id', id)
+        .eq('id', listId)
         .eq('user_id', user.id)
 
       if (error) throw error
 
       toast.success("List updated successfully!")
-      navigate(`/lists/${id}`)
+      navigate(`/lists/${listId}`)
     } catch (error) {
       console.error('Error updating list:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to update list')
@@ -132,7 +122,7 @@ export default function EditList() {
       <Button 
         variant="ghost" 
         className="mb-6"
-        onClick={() => navigate(`/lists/${id}`)}
+        onClick={() => navigate(`/lists/${listId}`)}
         disabled={isSaving}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />

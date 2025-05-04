@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
 
 export default function AddWord() {
-  const { id: listId } = useParams()
+  const { listId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
@@ -33,7 +33,7 @@ export default function AddWord() {
     try {
       setIsLoading(true)
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('words')
         .insert([
           {
