@@ -67,9 +67,11 @@ const Navbar = () => {
           <Button variant="ghost" size="sm" className="hover:bg-primary/10">
             Sign In
           </Button>
-          <Button size="sm" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90">
-            Sign Up
-          </Button>
+          <Link to="/signup">
+            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90">
+              Sign Up
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>
