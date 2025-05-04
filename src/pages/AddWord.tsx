@@ -9,11 +9,13 @@ import { ArrowLeft } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
+import { useList } from "@/hooks/useList"
 
 export default function AddWord() {
   const { listId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { refetch } = useList(listId, user?.id)
   const [isLoading, setIsLoading] = useState(false)
   
   const [original, setOriginal] = useState("")
@@ -51,6 +53,9 @@ export default function AddWord() {
         .single()
 
       if (error) throw error
+
+      // Refetch the list to update word count
+      await refetch()
 
       toast.success("Word added successfully!")
       navigate(`/lists/${listId}`)

@@ -75,7 +75,7 @@ export function DataTableRowActions({ row, onDelete }: DataTableRowActionsProps)
           <AlertDialogTrigger asChild>
             <DropdownMenuItem
               onSelect={(e) => e.preventDefault()}
-              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:!text-red-600 dark:hover:!text-red-400 focus:bg-red-50 dark:focus:bg-red-950/50"
             >
               <Trash className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
               Delete
@@ -93,7 +93,7 @@ export function DataTableRowActions({ row, onDelete }: DataTableRowActionsProps)
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
               >
                 Delete
               </AlertDialogAction>
