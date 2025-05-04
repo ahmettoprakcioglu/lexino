@@ -1,12 +1,17 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/auth.store";
+import { HeroSection } from "@/components/landing/HeroSection";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Plus, Brain, Trophy } from "lucide-react"
-import { useAuthStore } from '@/stores/auth.store'
 
-export default function Home() {
-  const navigate = useNavigate()
-  const { user } = useAuthStore()
+export function Home() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  if (!user) {
+    return <HeroSection />;
+  }
 
   return (
     <div className="container mx-auto py-8">
@@ -18,16 +23,6 @@ export default function Home() {
         <p className="text-xl text-muted-foreground mb-8">
           Your personal language learning companion
         </p>
-        {!user && (
-          <div className="flex justify-center gap-4">
-            <Button size="lg" onClick={() => navigate('/signup')}>
-              Get Started
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/signin')}>
-              Sign In
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Features Grid */}
@@ -96,20 +91,18 @@ export default function Home() {
       </div>
 
       {/* Quick Actions */}
-      {user && (
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-6">Quick Actions</h2>
-          <div className="flex justify-center gap-4">
-            <Button onClick={() => navigate('/create-list')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create New List
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/lists')}>
-              View All Lists
-            </Button>
-          </div>
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold mb-6">Quick Actions</h2>
+        <div className="flex justify-center gap-4">
+          <Button onClick={() => navigate('/create-list')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create New List
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/lists')}>
+            View All Lists
+          </Button>
         </div>
-      )}
+      </div>
     </div>
-  )
+  );
 } 

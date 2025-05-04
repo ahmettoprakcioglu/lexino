@@ -14,11 +14,12 @@ import { Loader2 } from 'lucide-react'
 import Lists from './pages/Lists'
 import CreateList from './pages/CreateList'
 import ListDetail from './pages/ListDetail'
-import Home from './pages/Home'
+import { Home } from './pages/Home'
 import AddWord from './pages/AddWord'
 import EditWord from './pages/EditWord'
 import Flashcards from './pages/Flashcards'
 import EditList from './pages/EditList'
+import { About } from './pages/About'
 
 function LoadingSpinner() {
   return (
@@ -70,6 +71,7 @@ function App() {
             <main className="container mx-auto px-4 py-8 pt-24">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/lists" element={
                   <ProtectedRoute>
                     <Lists />
