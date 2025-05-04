@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, HelpCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
+import { useSpacedRepetition } from "@/hooks/useSpacedRepetition"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface Word {
   id: string
@@ -49,6 +58,7 @@ export default function Flashcards() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [shuffledWords, setShuffledWords] = useState<Word[]>([])
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const { updateWordReview, isUpdating } = useSpacedRepetition(shuffledWords[currentIndex]?.id)
 
   useEffect(() => {
     const fetchAllWords = async () => {
@@ -101,7 +111,7 @@ export default function Flashcards() {
         navigate(`/lists/${listId}`)
       } finally {
         setIsLoading(false)
-        setLoadingProgress(0) // Reset progress
+        setLoadingProgress(0)
       }
     }
 
@@ -178,6 +188,90 @@ export default function Flashcards() {
     }
   }
 
+  // Update quality buttons component
+  const QualityButtons = () => (
+    <div className="space-y-4 mt-4">
+      <div className="text-center text-sm text-muted-foreground">
+        How well did you remember this word?
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-emerald-500 hover:bg-emerald-600 text-white"
+              onClick={() => handleQualitySelect(5)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Perfect (5)
+            </Button>
+            <span className="text-sm text-muted-foreground">Instantly remembered</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-green-500 hover:bg-green-600 text-white"
+              onClick={() => handleQualitySelect(4)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Easy (4)
+            </Button>
+            <span className="text-sm text-muted-foreground">Minimal thought needed</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={() => handleQualitySelect(3)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Good (3)
+            </Button>
+            <span className="text-sm text-muted-foreground">Some thought needed</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-yellow-500 hover:bg-yellow-600 text-white"
+              onClick={() => handleQualitySelect(2)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Hard (2)
+            </Button>
+            <span className="text-sm text-muted-foreground">Significant effort</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={() => handleQualitySelect(1)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Very Hard (1)
+            </Button>
+            <span className="text-sm text-muted-foreground">Barely remembered</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              className="w-24 bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => handleQualitySelect(0)}
+              disabled={isUpdating || !isFlipped}
+            >
+              Blackout (0)
+            </Button>
+            <span className="text-sm text-muted-foreground">Completely forgot</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const handleQualitySelect = async (quality: 0 | 1 | 2 | 3 | 4 | 5) => {
+    const result = await updateWordReview(quality)
+    if (result.success) {
+      handleNext()
+    } else {
+      toast.error("Failed to update review status")
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 max-w-2xl">
@@ -233,7 +327,70 @@ export default function Flashcards() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Flashcards</h1>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-3">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  Help
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>How Does the Learning System Work?</DialogTitle>
+                  <DialogDescription>
+                    <div className="space-y-4 pt-4">
+                      <p>
+                        This system uses the scientifically proven "Spaced Repetition" method. 
+                        After flipping the card, you need to rate how well you remembered the word.
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <h3 className="font-semibold">Rating Options:</h3>
+                        <ul className="space-y-2">
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                            <strong>Perfect (5):</strong> Instantly remembered, no hesitation
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <strong>Easy (4):</strong> Remembered with minimal thought
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                            <strong>Good (3):</strong> Remembered after some thought
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <strong>Hard (2):</strong> Took significant effort to remember
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                            <strong>Very Hard (1):</strong> Barely remembered
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <strong>Blackout (0):</strong> Completely forgot
+                          </li>
+                        </ul>
+                      </div>
+
+                      <p>
+                        Based on your rating, the system calculates when to show the word again:
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Words you remember well will be shown after longer intervals</li>
+                        <li>Difficult words will be shown more frequently</li>
+                        <li>Words you forgot will be shown the next day</li>
+                      </ul>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
             <Button
               variant="outline"
               size="icon"
@@ -245,26 +402,45 @@ export default function Flashcards() {
           </div>
         </div>
 
-        <div 
-          className="relative min-h-[300px] w-full bg-card rounded-xl shadow-lg cursor-pointer perspective-1000"
-          onClick={() => setIsFlipped(!isFlipped)}
-        >
-          <div className={`absolute inset-0 backface-hidden transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`}>
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-              <div className="text-2xl font-semibold mb-4">{currentWord.original}</div>
-              {currentWord.pronunciation && (
-                <div className="text-sm text-muted-foreground">{currentWord.pronunciation}</div>
-              )}
+        <div className="mt-8">
+          <div className="relative">
+            <div 
+              className="relative h-64 cursor-pointer bg-card rounded-lg border"
+              onClick={() => !isUpdating && setIsFlipped(!isFlipped)}
+            >
+              <div 
+                className={`absolute inset-0 w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${
+                  isFlipped ? '[transform:rotateY(180deg)]' : ''
+                }`}
+              >
+                {/* Front of card */}
+                <div className="absolute inset-0 h-full w-full [backface-visibility:hidden]">
+                  <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
+                    <div className="text-center">
+                      <h2 className="text-2xl font-bold mb-4">{currentWord?.original}</h2>
+                      {currentWord?.pronunciation && (
+                        <p className="text-muted-foreground">{currentWord.pronunciation}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back of card */}
+                <div className="absolute inset-0 h-full w-full [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
+                    <div className="text-center">
+                      <h2 className="text-2xl font-bold mb-4">{currentWord?.translation}</h2>
+                      {currentWord?.example && (
+                        <p className="text-muted-foreground italic">"{currentWord.example}"</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className={`absolute inset-0 backface-hidden transition-transform duration-500 rotate-y-180 ${isFlipped ? 'rotate-y-0' : ''}`}>
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-              <div className="text-2xl font-semibold mb-4">{currentWord.translation}</div>
-              {currentWord.example && (
-                <div className="text-sm text-muted-foreground italic">"{currentWord.example}"</div>
-              )}
-            </div>
-          </div>
+
+          {isFlipped && <QualityButtons />}
         </div>
 
         <div className="flex items-center justify-between mt-6">

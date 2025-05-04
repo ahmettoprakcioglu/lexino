@@ -135,3 +135,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add perspective for 3D card flip */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Ensure proper 3D transforms */
+.transform-gpu {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Rotation utilities */
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Backface visibility */
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
