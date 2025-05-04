@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import {
   ColumnDef,
@@ -10,8 +8,6 @@ import {
   getCoreRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   Row,
@@ -50,7 +46,6 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
   const [data, setData] = useState<TData[]>([])
   const [totalRows, setTotalRows] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -121,8 +116,8 @@ export function DataTable<TData, TValue>({
         if (filter.id === 'difficulty' || filter.id === 'learning_status') {
           // For multi-select filters, use 'in' operator
           query = query.in(filter.id, filter.value as string[])
-        } else {
-          // For text search filters, use 'ilike' operator
+        } else if (filter.id === 'original') {
+          // For search, use ilike operator
           query = query.ilike(filter.id, `%${filter.value}%`)
         }
       })
@@ -151,23 +146,22 @@ export function DataTable<TData, TValue>({
     }
   }, [user, listId, sorting, columnFilters, pagination.pageIndex, pagination.pageSize])
 
-  // Debounced version of fetchData
+  // Debounced version of fetchData for search
   const debouncedFetchData = useCallback(
     debounce(() => {
       fetchData()
-    }, 500),
+    }, 300), // Reduced debounce time for better responsiveness
     [fetchData]
   )
 
   useEffect(() => {
-    // If the filter is for the search field (original column), use debounced fetch
+    // If the filter is for the search field, use debounced fetch
     const isSearchFilter = columnFilters.some(filter => filter.id === 'original')
     if (isSearchFilter) {
       debouncedFetchData()
-      // Cleanup the debounced function
       return () => debouncedFetchData.cancel()
     } else {
-      // For other changes (sorting, pagination, etc.), fetch immediately
+      // For other changes, fetch immediately
       fetchData()
     }
   }, [fetchData, debouncedFetchData, columnFilters])
@@ -188,27 +182,24 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnVisibility,
-      rowSelection,
       columnFilters,
       pagination: {
         pageIndex: pagination.pageIndex,
         pageSize: pagination.pageSize
       }
     },
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
+    pageCount: Math.ceil(totalRows / pagination.pageSize),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: true,
-    pageCount: Math.ceil(totalRows / pagination.pageSize),
+    manualFiltering: true,
+    manualSorting: true,
   })
 
   return (
@@ -237,7 +228,10 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   Loading...
                 </TableCell>
               </TableRow>

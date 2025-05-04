@@ -1,5 +1,3 @@
-"use client"
-
 import { Row } from "@tanstack/react-table"
 import { Pencil, MoreHorizontal, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
