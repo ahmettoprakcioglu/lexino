@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from '@/lib/supabase'
 import { format, subDays, eachDayOfInterval } from 'date-fns'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, TooltipProps } from 'recharts'
 import { useTheme } from '../../providers/theme-provider'
+
+// Add this type definition
+type CustomAxisTick = {
+  fill?: string;
+  angle?: number;
+  textAnchor?: string;
+  dy?: number;
+  dx?: number;
+}
 
 interface LearningStatsProps {
   listId: string
@@ -15,6 +24,45 @@ interface DailyStats {
   wordsReviewed: number
   wordsLearned: number
 }
+
+interface CustomTooltipProps extends TooltipProps<number, string> {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    color: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (!active || !payload) return null;
+
+  return (
+    <div className="rounded-lg border bg-background p-3 shadow-sm">
+      <p className="font-medium mb-2">
+        {format(new Date(label || ''), 'MMMM d, yyyy')}
+      </p>
+      {payload.map((entry, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-2 text-sm"
+        >
+          <div
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-muted-foreground">
+            {entry.name}:
+          </span>
+          <span className="font-medium">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export function LearningStats({ listId, userId }: LearningStatsProps) {
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
@@ -30,7 +78,9 @@ export function LearningStats({ listId, userId }: LearningStatsProps) {
 
         // Get the date range for the last 30 days
         const endDate = new Date()
+        endDate.setHours(23, 59, 59, 999) // Set to end of day
         const startDate = subDays(endDate, 29)
+        startDate.setHours(0, 0, 0, 0) // Set to start of day
 
         // Create an array of all dates in the range
         const dateRange = eachDayOfInterval({ start: startDate, end: endDate })
@@ -47,6 +97,7 @@ export function LearningStats({ listId, userId }: LearningStatsProps) {
           .eq('list_id', listId)
           .eq('user_id', userId)
           .gte('date', format(startDate, 'yyyy-MM-dd'))
+          .lte('date', format(endDate, 'yyyy-MM-dd'))
           .order('date', { ascending: true })
 
         if (error) throw error
@@ -170,17 +221,25 @@ export function LearningStats({ listId, userId }: LearningStatsProps) {
                   stroke={theme === 'dark' ? '#888888' : '#666666'}
                   fontSize={12}
                   tickFormatter={(value: string) => format(new Date(value), 'MMM d')}
+                  dy={10}
+                  tick={({ 
+                    fill: theme === 'dark' ? '#888888' : '#666666',
+                    angle: -45,
+                    textAnchor: 'end',
+                    dy: 8,
+                    dx: -8
+                  } as CustomAxisTick)}
+                  tickLine={{ stroke: theme === 'dark' ? '#888888' : '#666666' }}
+                  axisLine={{ stroke: theme === 'dark' ? '#888888' : '#666666' }}
+                  interval={0}
+                  height={60}
                 />
                 <YAxis
                   stroke={theme === 'dark' ? '#888888' : '#666666'}
                   fontSize={12}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                    border: '1px solid #e5e7eb',
-                  }}
-                  labelFormatter={(value: string) => format(new Date(value), 'MMMM d, yyyy')}
+                  content={<CustomTooltip />}
                 />
                 <Line
                   type="monotone"
