@@ -1,27 +1,60 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Pencil, Layout } from "lucide-react"
+import { ArrowLeft, Plus, Pencil, Layout, BarChart2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
-import { Skeleton } from "@/components/ui"
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "@/components/data-table/columns"
 import { useList } from "@/hooks/useList"
 import { useListStats } from "@/hooks/useListStats"
 import { DeleteConfirmModal } from "@/components/lists/DeleteConfirmModal"
-import { ListStats } from "@/components/lists/ListStats"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Custom hook for learning goals
+function useLearningGoals(listId: string, userId: string) {
+  const [goals, setGoals] = useState<{ daily_word_goal: number } | null>(null)
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('learning_goals')
+          .select('daily_word_goal')
+          .eq('list_id', listId)
+          .eq('user_id', userId)
+          .single()
+
+        if (error && error.code !== 'PGRST116') {
+          throw error
+        }
+
+        setGoals(data)
+      } catch (error) {
+        console.error('Error fetching learning goals:', error)
+      }
+    }
+
+    if (listId && userId) {
+      fetchGoals()
+    }
+  }, [listId, userId])
+
+  return goals
+}
 
 export default function ListDetail() {
   const { listId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const [statsKey, setStatsKey] = useState(0)
   const { list, isLoading, error } = useList(listId, user?.id)
+  const [statsKey, setStatsKey] = useState(0)
   const stats = useListStats(listId, statsKey)
+  const goals = useLearningGoals(listId!, user!.id)
 
   const handleStatusChange = () => {
     setStatsKey(prev => prev + 1)
@@ -134,6 +167,13 @@ export default function ListDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/lists/${listId}/insights`)}
+            >
+              <BarChart2 className="h-4 w-4 mr-2" />
+              View Insights
+            </Button>
             <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${listId}/edit`)}>
               <Pencil className="h-4 w-4" />
             </Button>
@@ -145,23 +185,51 @@ export default function ListDetail() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Statistics</h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Words</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalWords}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Words Learned</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.learned}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.totalWords > 0 
+                  ? `${((stats.learned / stats.totalWords) * 100).toFixed(1)}% Complete`
+                  : '0% Complete'
+                }
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Words in Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.learning}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Learning Goals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{goals?.daily_word_goal || 0} words/day</div>
+            </CardContent>
+          </Card>
         </div>
 
-        {!stats.isLoading && !stats.error && (
-          <ListStats
-            totalWords={stats.totalWords}
-            learned={stats.learned}
-            learning={stats.learning}
-            notLearned={stats.notLearned}
-            easy={stats.easy}
-            medium={stats.medium}
-            hard={stats.hard}
-          />
-        )}
-
-        <div className="flex justify-between items-center mb-6 mt-8">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Words</h2>
         </div>
 

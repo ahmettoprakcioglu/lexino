@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import './App.css'
-import { ThemeProvider } from './components/theme-provider'
+import { ThemeProvider } from './providers/theme-provider'
 import SignUpPage from './pages/SignUp'
 import SignInPage from './pages/SignIn'
 import ForgotPasswordPage from './pages/ForgotPassword'
@@ -9,7 +9,7 @@ import ResetPasswordPage from './pages/ResetPassword'
 import AuthCallback from './pages/AuthCallback'
 import { AppProvider } from './providers/app-provider'
 import { useAuthStore } from './stores/auth.store'
-import { Toaster } from './components/toaster'
+import { Toaster } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import Lists from './pages/Lists'
 import CreateList from './pages/CreateList'
@@ -21,6 +21,7 @@ import Flashcards from './pages/Flashcards'
 import EditList from './pages/EditList'
 import { About } from './pages/About'
 import Footer from './components/Footer'
+import ListInsights from './pages/ListInsights'
 
 function LoadingSpinner() {
   return (
@@ -62,7 +63,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function App() {
+export default function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="lexino-theme">
       <AppProvider>
@@ -108,6 +109,11 @@ function App() {
                     <EditList />
                   </ProtectedRoute>
                 } />
+                <Route path="/lists/:listId/insights" element={
+                  <ProtectedRoute>
+                    <ListInsights />
+                  </ProtectedRoute>
+                } />
                 <Route path="/signup" element={
                   <PublicRoute>
                     <SignUpPage />
@@ -128,12 +134,10 @@ function App() {
               </Routes>
             </main>
             <Footer />
-            <Toaster />
+            <Toaster richColors position="top-right" />
           </div>
         </Router>
       </AppProvider>
     </ThemeProvider>
   )
 }
-
-export default App
