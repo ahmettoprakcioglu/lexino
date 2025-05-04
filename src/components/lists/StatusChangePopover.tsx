@@ -13,19 +13,22 @@ const statusOptions = [
     value: "not_learned",
     label: "Not Learned",
     variant: "not_learned" as const,
-    className: "bg-background hover:bg-muted"
+    className: "bg-background hover:bg-muted",
+    ringClassName: "ring-border"
   },
   {
     value: "learning",
     label: "Learning",
     variant: "learning" as const,
-    className: "bg-purple-100 dark:bg-purple-900/20 hover:bg-purple-100/80 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+    className: "bg-purple-100 dark:bg-purple-900/20 hover:bg-purple-100/80 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300",
+    ringClassName: "ring-purple-700 dark:ring-purple-300"
   },
   {
     value: "learned",
     label: "Learned",
     variant: "learned" as const,
-    className: "bg-green-100 dark:bg-green-900/20 hover:bg-green-100/80 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300"
+    className: "bg-green-100 dark:bg-green-900/20 hover:bg-green-100/80 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300",
+    ringClassName: "ring-green-700 dark:ring-green-300"
   }
 ]
 
@@ -50,7 +53,8 @@ export function StatusChangePopover({ status, onStatusChange }: StatusChangePopo
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                 option.className,
-                status === option.value && "ring-2 ring-primary ring-offset-1"
+                status === option.value && "ring-1",
+                status === option.value && option.ringClassName
               )}
               onClick={() => onStatusChange(option.value as "not_learned" | "learning" | "learned")}
             >
