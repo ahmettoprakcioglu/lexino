@@ -15,6 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Form } from "@/components/ui/form"
 import { FormError } from "@/components/ui/form-error"
+import { useAuthStore } from "@/stores/auth.store"
+import { useNavigate } from "react-router-dom"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 const signInSchema = z.object({
   email: z.string().min(1, "Please enter your email address").email("Please enter a valid email address"),
@@ -26,6 +30,8 @@ type FormData = z.infer<typeof signInSchema>
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
+  const signIn = useAuthStore((state) => state.signIn)
 
   const form = useForm<FormData>({
     resolver: zodResolver(signInSchema),
@@ -36,9 +42,19 @@ export default function SignInPage() {
     },
   })
 
+  const signInMutation = useMutation({
+    mutationFn: (data: FormData) => signIn(data.email, data.password),
+    onSuccess: () => {
+      toast.success("Successfully signed in!")
+      navigate("/")
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to sign in")
+    },
+  })
+
   const onSubmit = (data: FormData) => {
-    console.log(data)
-    // Handle sign in logic here
+    signInMutation.mutate(data)
   }
 
   return (
@@ -65,6 +81,7 @@ export default function SignInPage() {
                   type="email"
                   placeholder="john@example.com"
                   className={`transition-all duration-300 ${form.formState.errors.email ? "input-error" : ""}`}
+                  disabled={signInMutation.isPending}
                 />
                 <FormError message={form.formState.errors.email?.message} />
               </div>
@@ -80,6 +97,7 @@ export default function SignInPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className={`pr-10 transition-all duration-300 ${form.formState.errors.password ? "input-error" : ""}`}
+                    disabled={signInMutation.isPending}
                   />
                   <button
                     type="button"
@@ -103,6 +121,7 @@ export default function SignInPage() {
                     type="checkbox"
                     {...form.register("rememberMe")}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    disabled={signInMutation.isPending}
                   />
                   <label className="text-sm text-muted-foreground">Remember me</label>
                 </div>
@@ -116,9 +135,9 @@ export default function SignInPage() {
               <Button 
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90"
-                disabled={form.formState.isSubmitting}
+                disabled={signInMutation.isPending}
               >
-                {form.formState.isSubmitting ? "Signing In..." : "Sign In"}
+                {signInMutation.isPending ? "Signing In..." : "Sign In"}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}

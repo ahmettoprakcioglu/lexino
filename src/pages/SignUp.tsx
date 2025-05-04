@@ -15,6 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Form } from "@/components/ui/form"
 import { FormError } from "@/components/ui/form-error"
+import { useAuthStore } from "@/stores/auth.store"
+import { useNavigate } from "react-router-dom"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 const signUpSchema = z.object({
   fullName: z.string().min(1, "Please enter your full name"),
@@ -38,6 +42,8 @@ type FormData = z.infer<typeof signUpSchema>
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const navigate = useNavigate()
+  const signUp = useAuthStore((state) => state.signUp)
 
   const form = useForm<FormData>({
     resolver: zodResolver(signUpSchema),
@@ -50,9 +56,19 @@ export default function SignUpPage() {
     },
   })
 
+  const signUpMutation = useMutation({
+    mutationFn: (data: FormData) => signUp(data.email, data.password, data.fullName),
+    onSuccess: () => {
+      toast.success("Account created successfully! Please check your email to verify your account.")
+      navigate("/signin")
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to create account")
+    },
+  })
+
   const onSubmit = (data: FormData) => {
-    console.log(data)
-    // Handle sign up logic here
+    signUpMutation.mutate(data)
   }
 
   return (
@@ -78,6 +94,7 @@ export default function SignUpPage() {
                   {...form.register("fullName")}
                   placeholder="John Doe"
                   className={`transition-all duration-300 ${form.formState.errors.fullName ? "input-error" : ""}`}
+                  disabled={signUpMutation.isPending}
                 />
                 <FormError message={form.formState.errors.fullName?.message} />
               </div>
@@ -92,6 +109,7 @@ export default function SignUpPage() {
                   type="email"
                   placeholder="john@example.com"
                   className={`transition-all duration-300 ${form.formState.errors.email ? "input-error" : ""}`}
+                  disabled={signUpMutation.isPending}
                 />
                 <FormError message={form.formState.errors.email?.message} />
               </div>
@@ -107,6 +125,7 @@ export default function SignUpPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className={`pr-10 transition-all duration-300 ${form.formState.errors.password ? "input-error" : ""}`}
+                    disabled={signUpMutation.isPending}
                   />
                   <button
                     type="button"
@@ -134,6 +153,7 @@ export default function SignUpPage() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     className={`pr-10 transition-all duration-300 ${form.formState.errors.confirmPassword ? "input-error" : ""}`}
+                    disabled={signUpMutation.isPending}
                   />
                   <button
                     type="button"
@@ -158,6 +178,7 @@ export default function SignUpPage() {
                   className={`h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20 ${
                     form.formState.errors.terms ? "border-red-500 dark:border-red-400" : ""
                   }`}
+                  disabled={signUpMutation.isPending}
                 />
                 <div className="space-y-1">
                   <label className="text-sm text-muted-foreground">
@@ -179,9 +200,9 @@ export default function SignUpPage() {
               <Button 
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90"
-                disabled={form.formState.isSubmitting}
+                disabled={signUpMutation.isPending}
               >
-                {form.formState.isSubmitting ? "Creating Account..." : "Sign Up"}
+                {signUpMutation.isPending ? "Creating Account..." : "Sign Up"}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}

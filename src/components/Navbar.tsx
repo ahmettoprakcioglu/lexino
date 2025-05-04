@@ -2,9 +2,23 @@ import { Button } from "./ui/button"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "../lib/utils"
 import { ThemeToggle } from "./theme-toggle"
+import { useAuthStore } from "@/stores/auth.store"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 const Navbar = () => {
   const location = useLocation()
+  const { user, signOut } = useAuthStore()
+
+  const signOutMutation = useMutation({
+    mutationFn: () => signOut(),
+    onSuccess: () => {
+      toast.success("Successfully signed out!")
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to sign out")
+    },
+  })
 
   const isActivePath = (path: string) => {
     return location.pathname === path
@@ -64,22 +78,41 @@ const Navbar = () => {
         <div className="flex items-center space-x-4">
           <ThemeToggle />
           <div className="h-5 w-[1px] bg-border mx-2" />
-          <Link to="/signin">
-            <Button variant="ghost" size="sm" className={cn(
-              "hover:bg-primary/10",
-              isActivePath("/signin") && "bg-primary/10 text-primary"
-            )}>
-              Sign In
-            </Button>
-          </Link>
-          <Link to="/signup">
-            <Button size="sm" className={cn(
-              "bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90",
-              isActivePath("/signup") && "opacity-90"
-            )}>
-              Sign Up
-            </Button>
-          </Link>
+          {user ? (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {user.user_metadata.full_name}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="hover:bg-primary/10"
+                onClick={() => signOutMutation.mutate()}
+                disabled={signOutMutation.isPending}
+              >
+                {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/signin">
+                <Button variant="ghost" size="sm" className={cn(
+                  "hover:bg-primary/10",
+                  isActivePath("/signin") && "bg-primary/10 text-primary"
+                )}>
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button size="sm" className={cn(
+                  "bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90",
+                  isActivePath("/signup") && "opacity-90"
+                )}>
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
