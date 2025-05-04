@@ -15,7 +15,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Form } from "@/components/ui/form"
 import { FormError } from "@/components/ui/form-error"
-import { useAuthStore } from "@/stores/auth.store"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -41,68 +40,9 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const updatePassword = useAuthStore((state) => state.updatePassword)
-
-  // Check if we have a valid reset token
-  useEffect(() => {
-    const checkResetToken = async () => {
-      try {
-        console.log("Starting reset token validation")
-        
-        // Get the token from URL params
-        const token = searchParams.get('token')
-        const type = searchParams.get('type')
-        
-        console.log("Token present:", !!token)
-        console.log("Type:", type)
-        
-        if (!token) {
-          console.error("Missing token")
-          toast.error("Invalid password reset link. Please request a new one. (Error: Missing token)")
-          navigate("/forgot-password")
-          return
-        }
-
-        // First sign out to clear any existing session
-        console.log("Signing out existing session")
-        await supabase.auth.signOut()
-
-        try {
-          // Exchange the recovery token
-          console.log("Exchanging recovery token")
-          const { data, error } = await supabase.auth.exchangeCodeForSession(token)
-
-          if (error) {
-            console.error("Token exchange error:", error)
-            throw error
-          }
-
-          console.log("Token exchanged successfully:", !!data?.session)
-          
-          if (!data?.session) {
-            console.error("No session after token exchange")
-            throw new Error("Failed to establish session")
-          }
-
-          console.log("Session established successfully")
-        } catch (error) {
-          console.error("Exchange error:", error)
-          toast.error("Password reset link has expired. Please request a new one. (Error: Invalid token)")
-          navigate("/forgot-password")
-          return
-        }
-
-      } catch (error) {
-        console.error('Error in checkResetToken:', error)
-        toast.error("An error occurred. Please try again. (Error: Validation failed)")
-        navigate("/forgot-password")
-      }
-    }
-
-    checkResetToken()
-  }, [navigate, searchParams])
 
   const form = useForm<FormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -112,36 +52,106 @@ export default function ResetPasswordPage() {
     },
   })
 
+  useEffect(() => {
+    const handlePasswordReset = async () => {
+      try {
+        setIsLoading(true)
+
+        // Get the hash parameters
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        
+        // First check hash parameters (Supabase sometimes puts tokens in hash)
+        let access_token = hashParams.get('access_token')
+        let refresh_token = hashParams.get('refresh_token')
+        let type = hashParams.get('type')
+
+        // If not in hash, check query parameters
+        if (!access_token) {
+          access_token = searchParams.get('access_token')
+          refresh_token = searchParams.get('refresh_token')
+          type = searchParams.get('type')
+        }
+
+        // Get the error parameter from URL if any
+        const errorDescription = searchParams.get('error_description')
+        if (errorDescription) {
+          toast.error(decodeURIComponent(errorDescription))
+          navigate('/forgot-password')
+          return
+        }
+
+        // Check if we have a recovery token
+        if (!access_token || !type || type !== 'recovery') {
+          console.log('Missing required parameters:', { access_token, type })
+          toast.error('Invalid password reset link')
+          navigate('/forgot-password')
+          return
+        }
+
+        // Set the session using the tokens
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token: refresh_token || '',
+        })
+
+        if (sessionError) {
+          throw sessionError
+        }
+
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Password reset error:', error)
+        toast.error('Invalid or expired reset link')
+        navigate('/forgot-password')
+      }
+    }
+
+    handlePasswordReset()
+  }, [navigate, searchParams])
+
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      console.log("Starting password update")
-      // Update the password
-      await updatePassword(data.password)
-      // Immediately sign out after password update
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      })
+
+      if (error) throw error
+
+      // Sign out after password change
       await supabase.auth.signOut()
-      console.log("Password update completed")
     },
     onSuccess: () => {
       setIsSuccess(true)
-      console.log("Password update successful, redirecting soon")
-      // Redirect to sign in page after 3 seconds
+      toast.success("Password updated successfully")
       setTimeout(() => {
-        navigate("/signin")
+        navigate("/signin", { replace: true })
       }, 3000)
     },
     onError: (error) => {
       console.error("Password update error:", error)
-      if (error instanceof Error && error.message.includes('same password')) {
-        toast.error("New password must be different from your current password")
-        form.reset()
-      } else {
-        toast.error(error instanceof Error ? error.message : "Failed to reset password")
-      }
+      toast.error(error instanceof Error ? error.message : "Failed to reset password")
     },
   })
 
   const onSubmit = (data: FormData) => {
     updatePasswordMutation.mutate(data)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-2">
+            <CardTitle className="text-2xl font-bold text-center">
+              Verifying Reset Link...
+            </CardTitle>
+            <CardDescription className="text-center">
+              Please wait while we verify your password reset request.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
   }
 
   if (isSuccess) {
@@ -239,7 +249,7 @@ export default function ResetPasswordPage() {
                 className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90"
                 disabled={updatePasswordMutation.isPending}
               >
-                {updatePasswordMutation.isPending ? "Resetting Password..." : "Reset Password"}
+                {updatePasswordMutation.isPending ? "Updating Password..." : "Update Password"}
               </Button>
             </CardFooter>
           </form>

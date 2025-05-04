@@ -125,8 +125,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+      
       if (error) throw error
+
       set({ error: null, isLoading: false })
     } catch (error) {
       const authError = {
@@ -145,27 +149,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error('Password must be at least 8 characters and contain uppercase, lowercase, and numbers')
       }
 
-      // First, get the current session to check if we're actually logged in
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        throw new Error('No active session found. Please try resetting your password again.')
-      }
-
       // Update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       })
 
       if (error) {
-        // If the error is about same password, sign out and redirect
         if (error.message.toLowerCase().includes('same password')) {
-          await supabase.auth.signOut()
           throw new Error('New password must be different from your current password')
         }
         throw error
       }
 
-      // After successful password update, sign out to require new login
+      // After successful password update, sign out
       await supabase.auth.signOut()
       set({ user: null, error: null, isLoading: false })
     } catch (error) {

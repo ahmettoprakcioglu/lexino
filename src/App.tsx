@@ -41,6 +41,10 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     return <LoadingSpinner />
   }
 
+  if (window.location.pathname === '/auth/reset-password') {
+    return <>{children}</>
+  }
+
   if (user) {
     return <Navigate to="/" replace />
   }
@@ -83,11 +87,7 @@ function App() {
                     <ForgotPasswordPage />
                   </PublicRoute>
                 } />
-                <Route path="/reset-password" element={
-                  <PublicRoute>
-                    <ResetPasswordPage />
-                  </PublicRoute>
-                } />
+                <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
               </Routes>
             </main>
