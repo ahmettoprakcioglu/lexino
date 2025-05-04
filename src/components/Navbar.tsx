@@ -1,6 +1,7 @@
 import { Button } from "./ui/button"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "../lib/utils"
+import { ThemeToggle } from "./theme-toggle"
 
 const Navbar = () => {
   const location = useLocation()
@@ -10,7 +11,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="w-full border-b bg-white/50 backdrop-blur-sm fixed top-0 z-50">
+    <nav className="w-full border-b bg-background/50 backdrop-blur-sm fixed top-0 z-50">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         {/* Logo/Brand */}
         <div className="mr-8">
@@ -59,9 +60,11 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Auth Buttons */}
+        {/* Auth Buttons and Theme Toggle */}
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className="hover:bg-blue-50">
+          <ThemeToggle />
+          <div className="h-5 w-[1px] bg-border mx-2" />
+          <Button variant="ghost" size="sm" className="hover:bg-primary/10">
             Sign In
           </Button>
           <Button size="sm" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:opacity-90">
