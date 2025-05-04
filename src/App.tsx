@@ -20,6 +20,7 @@ import EditWord from './pages/EditWord'
 import Flashcards from './pages/Flashcards'
 import EditList from './pages/EditList'
 import { About } from './pages/About'
+import Footer from './components/Footer'
 
 function LoadingSpinner() {
   return (
@@ -66,9 +67,9 @@ function App() {
     <ThemeProvider defaultTheme="system" storageKey="lexino-theme">
       <AppProvider>
         <Router>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-background flex flex-col">
             <Navbar />
-            <main className="container mx-auto px-4 py-8 pt-24">
+            <main className="container mx-auto px-4 py-8 pt-24 flex-1">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -126,6 +127,7 @@ function App() {
                 <Route path="/auth/callback" element={<AuthCallback />} />
               </Routes>
             </main>
+            <Footer />
             <Toaster />
           </div>
         </Router>
