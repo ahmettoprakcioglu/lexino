@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Plus, Pencil, Trash2, Layout } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import {
@@ -202,126 +202,139 @@ export default function ListDetail() {
 
   return (
     <div className="container mx-auto py-8">
-      <Button 
-        variant="ghost" 
-        className="mb-6"
-        onClick={() => navigate("/lists")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Lists
-      </Button>
-
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <h1 className="text-3xl font-bold">{list.name}</h1>
-            <Badge variant={list.is_public ? "default" : "secondary"}>
-              {list.is_public ? "Public" : "Private"}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground mb-2">{list.description}</p>
-          <div className="text-sm text-muted-foreground">
-            Created on {format(new Date(list.created_at), "MMM d, yyyy")} • {list.word_count} words
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${id}/edit`)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="text-red-500 hover:text-red-600"
-            onClick={handleDeleteList}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Words</h2>
-        <Button onClick={() => navigate(`/lists/${id}/add-word`)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Word
+      <div className="flex items-center justify-between mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/lists')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Lists
         </Button>
-      </div>
-
-      {words.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">No Words Yet</h3>
-          <p className="text-muted-foreground mb-4">Start adding words to your list!</p>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/lists/${id}/flashcards`)}
+            disabled={words.length === 0}
+          >
+            <Layout className="mr-2 h-4 w-4" />
+            Practice with Flashcards
+          </Button>
           <Button onClick={() => navigate(`/lists/${id}/add-word`)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Your First Word
+            Add Word
           </Button>
         </div>
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Word</TableHead>
-                <TableHead>Translation</TableHead>
-                <TableHead>Example</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Added</TableHead>
-                <TableHead>Last Practiced</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {words.map((word) => (
-                <TableRow key={word.id}>
-                  <TableCell className="font-medium">{word.original}</TableCell>
-                  <TableCell>{word.translation}</TableCell>
-                  <TableCell className="max-w-xs truncate">{word.example}</TableCell>
-                  <TableCell>
-                    <span className={getDifficultyColor(word.difficulty)}>
-                      {word.difficulty.charAt(0).toUpperCase() + word.difficulty.slice(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(word.learning_status)}`} />
-                      {word.learning_status.split("_").map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(" ")}
-                    </div>
-                  </TableCell>
-                  <TableCell>{format(new Date(word.added_at), "MMM d, yyyy")}</TableCell>
-                  <TableCell>
-                    {word.last_practiced 
-                      ? format(new Date(word.last_practiced), "MMM d, yyyy")
-                      : "Never"
-                    }
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => navigate(`/lists/${id}/words/${word.id}/edit`)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-red-500 hover:text-red-600"
-                        onClick={() => handleDeleteWord(word.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-bold">{list.name}</h1>
+              <Badge variant={list.is_public ? "default" : "secondary"}>
+                {list.is_public ? "Public" : "Private"}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground mb-2">{list.description}</p>
+            <div className="text-sm text-muted-foreground">
+              Created on {format(new Date(list.created_at), "MMM d, yyyy")} • {list.word_count} words
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={() => navigate(`/lists/${id}/edit`)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="text-red-500 hover:text-red-600"
+              onClick={handleDeleteList}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      )}
+
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Words</h2>
+        </div>
+
+        {words.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">No Words Yet</h3>
+            <p className="text-muted-foreground mb-4">Start adding words to your list!</p>
+            <Button onClick={() => navigate(`/lists/${id}/add-word`)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Your First Word
+            </Button>
+          </div>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Word</TableHead>
+                  <TableHead>Translation</TableHead>
+                  <TableHead>Example</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Added</TableHead>
+                  <TableHead>Last Practiced</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {words.map((word) => (
+                  <TableRow key={word.id}>
+                    <TableCell className="font-medium">{word.original}</TableCell>
+                    <TableCell>{word.translation}</TableCell>
+                    <TableCell className="max-w-xs truncate">{word.example}</TableCell>
+                    <TableCell>
+                      <span className={getDifficultyColor(word.difficulty)}>
+                        {word.difficulty.charAt(0).toUpperCase() + word.difficulty.slice(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(word.learning_status)}`} />
+                        {word.learning_status.split("_").map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(" ")}
+                      </div>
+                    </TableCell>
+                    <TableCell>{format(new Date(word.added_at), "MMM d, yyyy")}</TableCell>
+                    <TableCell>
+                      {word.last_practiced 
+                        ? format(new Date(word.last_practiced), "MMM d, yyyy")
+                        : "Never"
+                      }
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => navigate(`/lists/${id}/words/${word.id}/edit`)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-500 hover:text-red-600"
+                          onClick={() => handleDeleteWord(word.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
     </div>
   )
 } 

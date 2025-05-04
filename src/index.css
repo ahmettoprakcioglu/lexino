@@ -110,6 +110,22 @@
   --sidebar-ring: oklch(0.541 0.281 293.009);
 }
 
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
+}
 
 @layer base {
   * {

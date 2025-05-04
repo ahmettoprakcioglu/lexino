@@ -15,6 +15,10 @@ import Lists from './pages/Lists'
 import CreateList from './pages/CreateList'
 import ListDetail from './pages/ListDetail'
 import Home from './pages/Home'
+import AddWord from './pages/AddWord'
+import EditWord from './pages/EditWord'
+import Flashcards from './pages/Flashcards'
+import EditList from './pages/EditList'
 
 function LoadingSpinner() {
   return (
@@ -79,6 +83,26 @@ function App() {
                 <Route path="/lists/:id" element={
                   <ProtectedRoute>
                     <ListDetail />
+                  </ProtectedRoute>
+                } />
+                <Route path="/lists/:id/add-word" element={
+                  <ProtectedRoute>
+                    <AddWord />
+                  </ProtectedRoute>
+                } />
+                <Route path="/lists/:listId/words/:wordId/edit" element={
+                  <ProtectedRoute>
+                    <EditWord />
+                  </ProtectedRoute>
+                } />
+                <Route path="/lists/:listId/flashcards" element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                } />
+                <Route path="/lists/:id/edit" element={
+                  <ProtectedRoute>
+                    <EditList />
                   </ProtectedRoute>
                 } />
                 <Route path="/signup" element={
