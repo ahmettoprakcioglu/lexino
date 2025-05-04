@@ -1,74 +1,21 @@
-import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Plus, Pencil, Trash2, Layout } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { supabase, cachedSupabaseQuery } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui"
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "@/components/data-table/columns"
-
-interface List {
-  id: string
-  name: string
-  description: string | null
-  category: string | null
-  is_public: boolean
-  created_at: string
-  word_count: number
-  progress: number
-  user_id: string
-}
+import { useList } from "@/hooks/useList"
 
 export default function ListDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const [list, setList] = useState<List | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchListDetails = async () => {
-      try {
-        if (!id || !user) return
-
-        setIsLoading(true)
-        
-        // Use cached query for list details
-        const { data: listData, error: listError } = await cachedSupabaseQuery<List>(
-          `list-${id}`,
-          async () => await supabase
-            .from('lists')
-            .select('*')
-            .eq('id', id)
-            .single()
-        )
-
-        if (listError) throw listError
-        if (!listData) throw new Error('List not found')
-
-        // Check if user has access to this list
-        if (listData.user_id !== user.id) {
-          toast.error("You don't have access to this list")
-          navigate('/lists')
-          return
-        }
-
-        setList(listData)
-      } catch (error) {
-        console.error("Error fetching list details:", error)
-        toast.error(error instanceof Error ? error.message : 'Failed to load list details')
-        navigate('/lists')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchListDetails()
-  }, [id, user, navigate])
+  const { list, isLoading, error } = useList(id, user?.id)
 
   const handleDeleteList = async () => {
     try {
@@ -115,7 +62,7 @@ export default function ListDetail() {
     )
   }
 
-  if (!list) {
+  if (error || !list) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
@@ -195,7 +142,7 @@ export default function ListDetail() {
           <h2 className="text-xl font-semibold">Words</h2>
         </div>
 
-        {list && <DataTable columns={columns} listId={id!} />}
+        <DataTable columns={columns} listId={id!} />
       </div>
     </div>
   )
