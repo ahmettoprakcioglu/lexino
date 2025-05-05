@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/auth.store";
 import {
   BookOpen,
   Brain,
@@ -101,6 +102,7 @@ const Section = ({ title, description, children }: {
 
 export function About() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   return (
     <div className="relative">
@@ -227,9 +229,11 @@ export function About() {
             <Button size="lg" onClick={() => navigate("/signup")}>
               Get Started
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
-              Sign In
-            </Button>
+            {!user && (
+              <Button size="lg" variant="outline" onClick={() => navigate("/signin")}>
+                Sign In
+              </Button>
+            )}
           </motion.div>
         </div>
       </Section>
