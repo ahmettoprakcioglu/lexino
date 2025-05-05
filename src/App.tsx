@@ -22,6 +22,9 @@ import EditList from './pages/EditList'
 import { About } from './pages/About'
 import Footer from './components/Footer'
 import ListInsights from './pages/ListInsights'
+import Practice from './pages/Practice'
+import Quiz from './pages/Quiz'
+import Writing from './pages/Writing'
 
 function LoadingSpinner() {
   return (
@@ -112,6 +115,31 @@ export default function App() {
                 <Route path="/lists/:listId/insights" element={
                   <ProtectedRoute>
                     <ListInsights />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice" element={
+                  <ProtectedRoute>
+                    <Practice />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice/flashcards" element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice/quiz" element={
+                  <ProtectedRoute>
+                    <Quiz />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice/writing" element={
+                  <ProtectedRoute>
+                    <Writing />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice/matching" element={
+                  <ProtectedRoute>
+                    <Practice />
                   </ProtectedRoute>
                 } />
                 <Route path="/signup" element={
