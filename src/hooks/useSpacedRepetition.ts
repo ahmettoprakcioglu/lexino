@@ -32,7 +32,7 @@ interface SpacedRepetitionParams {
   }>
 }
 
-// Enhanced SuperMemo 2 Algorithm with streaks and review history
+// Enhanced SuperMemo 2 Algorithm with advanced spacing and performance tracking
 const calculateNextReview = (
   quality: 0 | 1 | 2 | 3 | 4 | 5,
   params: SpacedRepetitionParams
@@ -56,25 +56,32 @@ const calculateNextReview = (
     review_history
   } = params
 
-  // Calculate new ease factor with more weight on recent performance
-  const recentPerformance = review_history.slice(-3).reduce((acc, review) => acc + review.quality, 0) / 3 || quality
+  // Calculate new ease factor with weighted recent performance
+  const recentPerformance = review_history
+    .slice(-5)
+    .reverse()
+    .reduce((acc, review, index) => {
+      const weight = 1 / Math.pow(2, index) // More recent reviews have higher weight
+      return acc + review.quality * weight
+    }, 0) / review_history.slice(-5).reduce((acc, _, index) => acc + 1 / Math.pow(2, index), 0) || quality
+
   let newEaseFactor = ease_factor + (0.1 - (5 - recentPerformance) * (0.08 + (5 - recentPerformance) * 0.02))
   newEaseFactor = Math.max(1.3, Math.min(2.5, newEaseFactor)) // Keep ease factor between 1.3 and 2.5
 
-  // Calculate streak changes
+  // Calculate streak changes with bonus for consistent high performance
   let newStreakCount = streak_count
   let newBestStreak = best_streak
 
-  if (quality >= 4) { // Good performance increases streak
+  if (quality >= 4) {
     newStreakCount++
     if (newStreakCount > newBestStreak) {
       newBestStreak = newStreakCount
     }
-  } else if (quality < 3) { // Poor performance resets streak
+  } else if (quality < 3) {
     newStreakCount = 0
   }
 
-  // Calculate new interval with progressive spacing
+  // Calculate new interval with sophisticated spacing
   let newInterval
   if (quality < 3) {
     newInterval = 1 // Reset interval if quality is poor
@@ -83,12 +90,14 @@ const calculateNextReview = (
   } else if (review_count === 1) {
     newInterval = quality >= 4 ? 3 : 2 // Shorter interval for moderate performance
   } else {
-    // Add some randomness to prevent clustering of reviews
+    // Add performance-based randomization
+    const performanceFactor = quality >= 4 ? 1.1 : quality === 3 ? 1.0 : 0.9
     const randomFactor = 0.95 + Math.random() * 0.1 // Random factor between 0.95 and 1.05
-    newInterval = Math.round(review_interval * newEaseFactor * randomFactor)
+    const streakBonus = Math.min(streak_count * 0.05, 0.2) // Max 20% bonus from streak
+    newInterval = Math.round(review_interval * newEaseFactor * performanceFactor * (1 + streakBonus) * randomFactor)
   }
 
-  // Add the current review to history
+  // Add the current review to history with enhanced tracking
   const newReviewHistory = [
     ...review_history,
     {
@@ -96,7 +105,7 @@ const calculateNextReview = (
       date: new Date().toISOString(),
       interval: newInterval
     }
-  ].slice(-10) // Keep only last 10 reviews
+  ].slice(-10) // Keep only last 10 reviews for performance
 
   return {
     ease_factor: newEaseFactor,
@@ -142,11 +151,15 @@ export const useSpacedRepetition = (wordId: string) => {
       // Calculate next review date
       const nextReviewDate = addDays(startOfDay(new Date()), review_interval)
 
-      // Update learning status based on performance
+      // Update learning status based on performance and history
       let learning_status = word.learning_status as Word['learning_status']
-      if (quality >= 4 && word.review_count > 3) {
+      const recentSuccessRate = review_history
+        .slice(-5)
+        .filter(review => review.quality >= 4).length / Math.min(review_history.length, 5)
+
+      if (quality >= 4 && word.review_count > 3 && recentSuccessRate >= 0.8) {
         learning_status = 'learned'
-      } else if (quality < 3) {
+      } else if (quality < 3 || recentSuccessRate < 0.6) {
         learning_status = 'learning'
       }
 
