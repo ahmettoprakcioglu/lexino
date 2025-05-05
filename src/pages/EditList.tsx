@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
@@ -163,13 +164,30 @@ export default function EditList() {
 
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                placeholder="Enter category"
+              <Select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                disabled={isSaving}
-              />
+                onValueChange={setCategory}
+                required
+                disabled={isLoading}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily_life">Daily Life & Conversations</SelectItem>
+                  <SelectItem value="business">Business & Professional</SelectItem>
+                  <SelectItem value="academic">Academic & Education</SelectItem>
+                  <SelectItem value="travel">Travel & Tourism</SelectItem>
+                  <SelectItem value="food">Food & Dining</SelectItem>
+                  <SelectItem value="entertainment">Entertainment & Media</SelectItem>
+                  <SelectItem value="technology">Technology & Internet</SelectItem>
+                  <SelectItem value="health">Health & Medical</SelectItem>
+                  <SelectItem value="culture">Culture & Arts</SelectItem>
+                  <SelectItem value="idioms">Idioms & Expressions</SelectItem>
+                  <SelectItem value="grammar">Grammar & Usage</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center space-x-2">
