@@ -23,6 +23,25 @@ function useLearningGoals(listId: string, userId: string) {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
+        // Try to upsert (insert or update) the goals
+        const { error: upsertError } = await supabase
+          .from('learning_goals')
+          .upsert(
+            {
+              list_id: listId,
+              user_id: userId,
+              daily_word_goal: 5,
+              weekly_review_goal: 20
+            },
+            {
+              onConflict: 'user_id,list_id',
+              ignoreDuplicates: true
+            }
+          )
+
+        if (upsertError) throw upsertError
+
+        // If upsert was successful, fetch the goals
         const { data, error } = await supabase
           .from('learning_goals')
           .select('daily_word_goal')
@@ -30,13 +49,11 @@ function useLearningGoals(listId: string, userId: string) {
           .eq('user_id', userId)
           .single()
 
-        if (error && error.code !== 'PGRST116') {
-          throw error
-        }
-
+        if (error) throw error
         setGoals(data)
+
       } catch (error) {
-        console.error('Error fetching learning goals:', error)
+        console.error('Error managing learning goals:', error)
       }
     }
 
