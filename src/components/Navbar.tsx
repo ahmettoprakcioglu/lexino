@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
+import { UserAvatar } from "./UserAvatar"
 
 const Navbar = () => {
   const location = useLocation()
@@ -78,10 +79,8 @@ const Navbar = () => {
           <ThemeToggle />
           <div className="h-5 w-[1px] bg-border mx-2" />
           {user ? (
-            <>
-              <span className="text-sm text-muted-foreground">
-                {user.user_metadata.full_name}
-              </span>
+            <div className="flex items-center space-x-4">
+              <UserAvatar user={user} />
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -91,7 +90,7 @@ const Navbar = () => {
               >
                 {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
               </Button>
-            </>
+            </div>
           ) : (
             <>
               <Link to="/signin">
@@ -135,9 +134,7 @@ const Navbar = () => {
                 <ThemeToggle />
                 {user ? (
                   <div className="flex items-center space-x-4">
-                    <span className="text-sm text-muted-foreground">
-                      {user.user_metadata.full_name}
-                    </span>
+                    <UserAvatar user={user} />
                     <Button 
                       variant="ghost" 
                       size="sm" 
