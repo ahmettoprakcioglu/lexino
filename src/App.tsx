@@ -26,7 +26,6 @@ import Practice from './pages/Practice'
 import Quiz from './pages/Quiz'
 import Writing from './pages/Writing'
 import AccountPage from './pages/Account'
-import SettingsPage from './pages/Settings'
 
 function LoadingSpinner() {
   return (
@@ -164,11 +163,6 @@ export default function App() {
                 <Route path="/account" element={
                   <ProtectedRoute>
                     <AccountPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/account/settings" element={
-                  <ProtectedRoute>
-                    <SettingsPage />
                   </ProtectedRoute>
                 } />
               </Routes>

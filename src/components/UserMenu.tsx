@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/stores/auth.store"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Settings, User as UserIcon, LogOut } from "lucide-react"
+import { User as UserIcon, LogOut } from "lucide-react"
 
 interface UserMenuProps {
   user: User
@@ -58,22 +58,13 @@ export function UserMenu({ user }: UserMenuProps) {
             <span>My Account</span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => navigate("/account/settings")}
-            className="cursor-pointer"
+            onClick={() => signOutMutation.mutate()}
+            className="cursor-pointer text-destructive focus:text-destructive"
           >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign Out</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => signOutMutation.mutate()}
-          disabled={signOutMutation.isPending}
-          className="cursor-pointer text-destructive focus:text-destructive"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>{signOutMutation.isPending ? "Signing out..." : "Sign out"}</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
