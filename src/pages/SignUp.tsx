@@ -20,6 +20,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { GoogleAuthButton } from "@/components/GoogleAuthButton"
 
 const signUpSchema = z.object({
   fullName: z.string().min(1, "Please enter your full name"),
@@ -172,7 +173,7 @@ export default function SignUpPage() {
               </div>
 
               {/* Terms */}
-              <div className="flex items-start space-x-2">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="terms"
                   {...form.register("terms")}
@@ -203,6 +204,22 @@ export default function SignUpPage() {
               >
                 {signUpMutation.isPending ? "Creating Account..." : "Sign Up"}
               </Button>
+
+              {/* Google ile giriş için ayırıcı çizgi ve metin */}
+              <div className="relative w-full">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              {/* Google butonu */}
+              <GoogleAuthButton />
+              
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link to="/signin" className="text-primary hover:underline">

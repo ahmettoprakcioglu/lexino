@@ -20,6 +20,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
+import { GoogleAuthButton } from "@/components/GoogleAuthButton"
 
 const signInSchema = z.object({
   email: z.string().min(1, "Please enter your email address").email("Please enter a valid email address"),
@@ -144,6 +145,20 @@ export default function SignInPage() {
               >
                 {signInMutation.isPending ? "Signing In..." : "Sign In"}
               </Button>
+              
+              <div className="relative w-full">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <GoogleAuthButton />
+              
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link to="/signup" className="text-primary hover:underline">

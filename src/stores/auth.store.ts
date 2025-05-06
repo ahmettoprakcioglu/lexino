@@ -13,6 +13,7 @@ interface AuthState {
   error: AuthError | null
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   setUser: (user: SupabaseUser | null) => void
   resetPassword: (email: string) => Promise<void>
@@ -97,6 +98,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       const authError = {
         message: error instanceof Error ? error.message : 'Failed to sign up',
+        code: error instanceof SupabaseAuthError ? error.code : undefined
+      }
+      set({ error: authError, isLoading: false })
+      throw error
+    }
+  },
+  signInWithGoogle: async () => {
+    try {
+      set({ isLoading: true, error: null })
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+
+      if (error) throw error
+
+      // Google yönlendirmesi otomatik olarak gerçekleşeceği için
+      // burada bir şey yapmamıza gerek yok
+      
+    } catch (error) {
+      const authError = {
+        message: error instanceof Error ? error.message : 'Failed to sign in with Google',
         code: error instanceof SupabaseAuthError ? error.code : undefined
       }
       set({ error: authError, isLoading: false })
