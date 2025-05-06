@@ -26,6 +26,7 @@ import Practice from './pages/Practice'
 import Quiz from './pages/Quiz'
 import Writing from './pages/Writing'
 import AccountPage from './pages/Account'
+import Matching from './pages/Matching'
 
 function LoadingSpinner() {
   return (
@@ -140,7 +141,7 @@ export default function App() {
                 } />
                 <Route path="/practice/matching" element={
                   <ProtectedRoute>
-                    <Practice />
+                    <Matching />
                   </ProtectedRoute>
                 } />
                 <Route path="/signup" element={
