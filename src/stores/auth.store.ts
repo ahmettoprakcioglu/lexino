@@ -7,6 +7,15 @@ interface AuthError {
   code?: string
 }
 
+interface UserMetadata {
+  avatar_url?: string
+  custom_avatar_url?: string
+  full_name?: string
+  phone?: string
+  website?: string
+  [key: string]: unknown
+}
+
 interface AuthState {
   user: SupabaseUser | null
   isLoading: boolean
@@ -19,6 +28,8 @@ interface AuthState {
   resetPassword: (email: string) => Promise<void>
   updatePassword: (newPassword: string) => Promise<void>
   clearError: () => void
+  preserveCustomAvatar: (user: SupabaseUser) => SupabaseUser
+  updateUserMetadata: (metadata: Partial<UserMetadata>) => void
 }
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
@@ -27,7 +38,7 @@ const validatePassword = (password: string): boolean => {
   return PASSWORD_REGEX.test(password)
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
   error: null,
@@ -85,6 +96,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         options: {
           data: {
             full_name: fullName,
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
+            custom_avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -150,7 +163,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw error
     }
   },
-  setUser: (user) => set({ user, isLoading: false }),
+  setUser: (user) => {
+    const state = get()
+    if (user) {
+      // Preserve custom avatar if exists
+      const updatedUser = state.preserveCustomAvatar(user)
+      set({ user: updatedUser, isLoading: false })
+    } else {
+      set({ user, isLoading: false })
+    }
+  },
   resetPassword: async (email: string) => {
     try {
       set({ isLoading: true, error: null })
@@ -204,4 +226,30 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
   clearError: () => set({ error: null }),
+  preserveCustomAvatar: (user: SupabaseUser) => {
+    const currentUser = get().user
+    if (!user || !currentUser?.user_metadata?.custom_avatar_url) return user
+
+    return {
+      ...user,
+      user_metadata: {
+        ...user.user_metadata,
+        avatar_url: currentUser.user_metadata.custom_avatar_url,
+        custom_avatar_url: currentUser.user_metadata.custom_avatar_url
+      }
+    } as SupabaseUser
+  },
+  updateUserMetadata: (metadata: Partial<UserMetadata>) => {
+    const currentUser = get().user
+    if (!currentUser) return
+
+    const updatedUser = {
+      ...currentUser,
+      user_metadata: {
+        ...currentUser.user_metadata,
+        ...metadata
+      }
+    }
+    set({ user: updatedUser })
+  },
 })) 

@@ -1,30 +1,16 @@
 import { Button } from "./ui/button"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { cn } from "../lib/utils"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuthStore } from "@/stores/auth.store"
-import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
-import { UserAvatar } from "./UserAvatar"
+import { UserMenu } from "./UserMenu"
 
 const Navbar = () => {
   const location = useLocation()
-  const navigate = useNavigate()
-  const { user, signOut } = useAuthStore()
+  const { user } = useAuthStore()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  const signOutMutation = useMutation({
-    mutationFn: () => signOut(),
-    onSuccess: () => {
-      toast.success("Successfully signed out!")
-      navigate("/signin")
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Failed to sign out")
-    },
-  })
 
   const isActivePath = (path: string) => {
     return location.pathname === path
@@ -79,18 +65,7 @@ const Navbar = () => {
           <ThemeToggle />
           <div className="h-5 w-[1px] bg-border mx-2" />
           {user ? (
-            <div className="flex items-center space-x-4">
-              <UserAvatar user={user} />
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="hover:bg-primary/10"
-                onClick={() => signOutMutation.mutate()}
-                disabled={signOutMutation.isPending}
-              >
-                {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
-              </Button>
-            </div>
+            <UserMenu user={user} />
           ) : (
             <>
               <Link to="/signin">
@@ -133,21 +108,7 @@ const Navbar = () => {
               <div className="flex items-center justify-between pt-4 border-t">
                 <ThemeToggle />
                 {user ? (
-                  <div className="flex items-center space-x-4">
-                    <UserAvatar user={user} />
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="hover:bg-primary/10"
-                      onClick={() => {
-                        signOutMutation.mutate()
-                        setIsMobileMenuOpen(false)
-                      }}
-                      disabled={signOutMutation.isPending}
-                    >
-                      {signOutMutation.isPending ? "Signing Out..." : "Sign Out"}
-                    </Button>
-                  </div>
+                  <UserMenu user={user} />
                 ) : (
                   <div className="flex items-center space-x-4">
                     <Link to="/signin" onClick={() => setIsMobileMenuOpen(false)}>
