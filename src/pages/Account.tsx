@@ -11,11 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Phone, Mail, Globe, X, Loader2 } from "lucide-react"
+import { parsePhoneNumberFromString, isValidPhoneNumber, AsYouType } from 'libphonenumber-js'
 
 export default function AccountPage() {
   const { user, updateUserMetadata } = useAuthStore()
   const [fullName, setFullName] = useState(user?.user_metadata?.full_name || "")
   const [phoneNumber, setPhoneNumber] = useState(user?.user_metadata?.phone || "")
+  const [phoneError, setPhoneError] = useState("")
   const [website, setWebsite] = useState(user?.user_metadata?.website || "")
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -81,13 +83,49 @@ export default function AccountPage() {
     }
   }
 
+  // Format phone number as user types
+  const handlePhoneChange = (value: string) => {
+    const formatter = new AsYouType('TR') // Default to Turkey, you might want to make this dynamic
+    const formattedNumber = formatter.input(value)
+    setPhoneNumber(formattedNumber)
+    
+    // Clear error if field is empty
+    if (!value.trim()) {
+      setPhoneError("")
+      return
+    }
+
+    // Validate phone number
+    try {
+      const phoneNumber = parsePhoneNumberFromString(value, 'TR')
+      if (!phoneNumber || !isValidPhoneNumber(value, 'TR')) {
+        setPhoneError("Please enter a valid phone number")
+      } else {
+        setPhoneError("")
+      }
+    } catch {
+      setPhoneError("Please enter a valid phone number")
+    }
+  }
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("No user found")
 
+      // Validate phone number before submitting
+      if (phoneNumber) {
+        try {
+          const parsedNumber = parsePhoneNumberFromString(phoneNumber, 'TR')
+          if (!parsedNumber || !isValidPhoneNumber(phoneNumber, 'TR')) {
+            throw new Error("Please enter a valid phone number")
+          }
+        } catch {
+          throw new Error("Please enter a valid phone number")
+        }
+      }
+
       let avatarUrl = user.user_metadata?.avatar_url
 
-      // If there's an avatar file, upload it first
       if (avatarFile) {
         avatarUrl = await uploadAvatar()
       }
@@ -108,7 +146,6 @@ export default function AccountPage() {
 
       if (error) throw error
 
-      // Immediately update the local state
       updateUserMetadata(newMetadata)
     },
     onSuccess: () => {
@@ -250,13 +287,22 @@ export default function AccountPage() {
                     <Label htmlFor="phone">Phone Number</Label>
                     <div className="flex gap-2">
                       <Phone className="w-4 h-4 text-muted-foreground shrink-0 mt-2.5" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="+1 (555) 000-0000"
-                      />
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={phoneNumber}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          placeholder="+90 (5XX) XXX XX XX"
+                          className={phoneError ? "border-destructive" : ""}
+                        />
+                        {phoneError && (
+                          <p className="text-xs text-destructive">{phoneError}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Enter your phone number in international format (e.g., +90 501 234 56 78)
+                        </p>
+                      </div>
                     </div>
                   </div>
 
