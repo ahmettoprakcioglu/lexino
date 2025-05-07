@@ -8,8 +8,7 @@
     "build": "tsc && vite build",
     "vercel-build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "api": "NODE_NO_WARNINGS=1 tsx watch server/index.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -32,18 +31,13 @@
     "@tanstack/react-query": "^5.75.2",
     "@tanstack/react-query-devtools": "^5.75.2",
     "@tanstack/react-table": "^8.21.3",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.1",
     "@types/lodash": "^4.17.16",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
     "framer-motion": "^12.9.4",
     "libphonenumber-js": "^1.12.7",
     "lodash": "^4.17.21",

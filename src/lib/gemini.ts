@@ -5,9 +5,13 @@ interface QuizQuestion {
   explanation: string
 }
 
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:3000'
+  : '';
+
 export async function generateQuiz(words: { original: string; translation: string }[]): Promise<QuizQuestion[]> {
   try {
-    const response = await fetch('/api/gemini/quiz', {
+    const response = await fetch(`${API_BASE_URL}/api/gemini/quiz`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,7 +32,7 @@ export async function generateQuiz(words: { original: string; translation: strin
 
 export async function generateExplanation(word: string, translation: string): Promise<string> {
   try {
-    const response = await fetch('/api/gemini/explain', {
+    const response = await fetch(`${API_BASE_URL}/api/gemini/explain`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
