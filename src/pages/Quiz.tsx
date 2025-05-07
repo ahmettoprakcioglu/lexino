@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateQuiz } from "@/lib/gemini"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
-import { Loader2, Brain } from "lucide-react"
+import { Loader2, Brain, Plus } from "lucide-react"
 import { addDays, startOfDay } from "date-fns"
 import { Progress } from "@/components/ui/progress"
 
@@ -16,7 +15,7 @@ interface QuizQuestion {
   options: string[]
   correctAnswer: string
   explanation: string
-  wordId: string
+  wordId?: string
 }
 
 interface List {
@@ -141,11 +140,11 @@ const calculateNextReview = (
 
 export default function Quiz() {
   const navigate = useNavigate()
+  const { listId } = useParams()
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [lists, setLists] = useState<List[]>([])
-  const [selectedListId, setSelectedListId] = useState<string>("")
+  const [list, setList] = useState<List | null>(null)
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
@@ -153,50 +152,47 @@ export default function Quiz() {
   const [score, setScore] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
   const [quizLimit, setQuizLimit] = useState<number>(0)
+  const [availableWordCount, setAvailableWordCount] = useState<number>(0)
   const DAILY_QUIZ_LIMIT = 5
+  const MIN_QUIZ_WORDS = 5
 
   useEffect(() => {
-    const fetchLists = async () => {
+    const fetchListAndQuizLimit = async () => {
       try {
-        if (!user) return
+        if (!user || !listId) return
 
-        const { data, error } = await supabase
+        // Fetch list details
+        const { data: listData, error: listError } = await supabase
           .from('lists')
           .select('id, name')
+          .eq('id', listId)
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
+          .single()
 
-        if (error) throw error
-        setLists(data || [])
-      } catch (error) {
-        console.error('Error fetching lists:', error)
-        toast.error('Failed to load lists')
-      } finally {
-        setIsLoading(false)
-      }
-    }
+        if (listError) throw listError
+        setList(listData)
 
-    fetchLists()
-  }, [user])
+        // Fetch available word count
+        const { data: words, error: wordsError } = await supabase
+          .from('words')
+          .select('id')
+          .eq('list_id', listId)
+          .eq('user_id', user.id)
 
-  useEffect(() => {
-    const fetchQuizLimit = async () => {
-      try {
-        if (!user) return
+        if (wordsError) throw wordsError
+        setAvailableWordCount(words?.length || 0)
 
+        // Fetch quiz limit
         const today = new Date().toISOString().split('T')[0]
-        
-        // Get existing limit
-        const { data: existingLimit, error: fetchError } = await supabase
+        const { data: existingLimit, error: limitError } = await supabase
           .from('quiz_limits')
           .select('quizzes_taken')
           .eq('user_id', user.id)
           .eq('date', today)
           .single()
 
-        if (fetchError) {
-          // If no record exists, create one
-          if (fetchError.code === 'PGRST116') {
+        if (limitError) {
+          if (limitError.code === 'PGRST116') {
             const { error: insertError } = await supabase
               .from('quiz_limits')
               .insert([{
@@ -205,61 +201,30 @@ export default function Quiz() {
                 quizzes_taken: 0
               }])
 
-            if (insertError) {
-              console.error('Error creating initial quiz limit:', insertError)
-              toast.error('Failed to initialize quiz limit')
-              return
-            }
+            if (insertError) throw insertError
             setQuizLimit(0)
           } else {
-            throw fetchError
+            throw limitError
           }
         } else {
           setQuizLimit(existingLimit.quizzes_taken)
         }
       } catch (error) {
-        console.error('Error fetching quiz limit:', error)
-        toast.error('Failed to check quiz limit')
+        console.error('Error fetching data:', error)
+        toast.error('Failed to load quiz data')
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    fetchQuizLimit()
-  }, [user])
+    fetchListAndQuizLimit()
+  }, [user, listId])
 
   const startQuiz = async () => {
-    if (!selectedListId) {
-      toast.error("Please select a list first")
-      return
-    }
+    if (!listId || !user) return
 
-    // Double check the current limit before starting
+    setIsGenerating(true)
     try {
-      const today = new Date().toISOString().split('T')[0]
-      const { data: currentLimit, error: limitError } = await supabase
-        .from('quiz_limits')
-        .select('quizzes_taken')
-        .eq('user_id', user?.id)
-        .eq('date', today)
-        .single()
-
-      if (limitError) {
-        throw limitError
-      }
-
-      if (currentLimit.quizzes_taken >= DAILY_QUIZ_LIMIT) {
-        toast.error("You've reached your daily quiz limit. Try again tomorrow!")
-        setQuizLimit(currentLimit.quizzes_taken)
-        return
-      }
-    } catch (error) {
-      console.error('Error checking current quiz limit:', error)
-      toast.error('Failed to check quiz limit')
-      return
-    }
-
-    try {
-      setIsGenerating(true)
-
       // Fetch all words with pagination
       const allWords: QuizWord[] = []
       let page = 0
@@ -269,8 +234,8 @@ export default function Quiz() {
         const { data: words, error } = await supabase
           .from('words')
           .select('id, original, translation, learning_status, ease_factor, review_interval, review_count, streak_count, best_streak, review_history, last_practiced')
-          .eq('list_id', selectedListId)
-          .eq('user_id', user?.id)
+          .eq('list_id', listId)
+          .eq('user_id', user.id)
           .order('added_at', { ascending: true })
           .range(page * pageSize, (page + 1) * pageSize - 1)
 
@@ -288,55 +253,24 @@ export default function Quiz() {
         page++
       }
 
-      if (!allWords.length) {
-        toast.error("No words found in this list")
-        return
-      }
-
-      // Filter and sort words based on spaced repetition algorithm
       const now = new Date()
-      const MIN_QUIZ_WORDS = 5
       const wordsForQuiz = allWords
         .filter(word => {
-          // Include words that:
-          // 1. Haven't been practiced yet
           if (!word.last_practiced) return true
-          
-          // 2. Are due for review based on their interval
           const lastPracticed = new Date(word.last_practiced)
           const daysElapsed = Math.floor((now.getTime() - lastPracticed.getTime()) / (1000 * 60 * 60 * 24))
           return daysElapsed >= (word.review_interval || 0)
         })
         .sort((a, b) => {
-          // Prioritize:
-          // 1. Words that haven't been learned yet
           if (a.learning_status === 'not_learned' && b.learning_status !== 'not_learned') return -1
           if (b.learning_status === 'not_learned' && a.learning_status !== 'not_learned') return 1
-
-          // 2. Words with lower ease factor (harder words)
           const aEase = a.ease_factor || 2.5
           const bEase = b.ease_factor || 2.5
           if (aEase !== bEase) return aEase - bEase
-
-          // 3. Words that were practiced longer ago
           const aLastPracticed = a.last_practiced ? new Date(a.last_practiced).getTime() : 0
           const bLastPracticed = b.last_practiced ? new Date(b.last_practiced).getTime() : 0
           return aLastPracticed - bLastPracticed
         })
-
-      // Early return if not enough words
-      if (wordsForQuiz.length < 2) {
-        toast.error("Not enough words available for a quiz. Add more words to your list!")
-        setIsGenerating(false)
-        return
-      }
-
-      // Early return if less than minimum recommended words
-      if (wordsForQuiz.length < MIN_QUIZ_WORDS) {
-        toast.warning(`You have ${wordsForQuiz.length} words available for quiz. Adding more words (at least ${MIN_QUIZ_WORDS}) will create a better learning experience!`)
-        setIsGenerating(false)
-        return
-      }
 
       // Take available words, up to 5
       const selectedWords = wordsForQuiz.slice(0, MIN_QUIZ_WORDS)
@@ -350,41 +284,34 @@ export default function Quiz() {
         
         console.log('Sending words to generate quiz:', quizWords)
         const rawQuestions = await generateQuiz(quizWords)
-        
+
         // Add wordId to each question
-        const questionsWithIds = rawQuestions.map((q, index) => ({
+        const questionsWithIds = rawQuestions.map((q: QuizQuestion, index: number) => ({
           ...q,
           wordId: selectedWords[index].id
         }))
 
-        // Update quiz limit before setting questions
+        // Update quiz limit
         const today = new Date().toISOString().split('T')[0]
-        
-        // First try to update existing record
         const { error: updateError } = await supabase
           .from('quiz_limits')
           .update({ quizzes_taken: quizLimit + 1 })
-          .eq('user_id', user?.id)
+          .eq('user_id', user.id)
           .eq('date', today)
 
         if (updateError) {
-          // If no record exists, create one
-          if (updateError.code === 'PGRST116') { // PGRST116 is "no rows" error
+          if (updateError.code === 'PGRST116') {
             const { error: insertError } = await supabase
               .from('quiz_limits')
               .insert([{
-                user_id: user?.id,
+                user_id: user.id,
                 date: today,
                 quizzes_taken: 1
               }])
 
-            if (insertError) {
-              console.error('Error creating quiz limit:', insertError)
-              throw new Error('Failed to create quiz limit')
-            }
+            if (insertError) throw insertError
           } else {
-            console.error('Error updating quiz limit:', updateError)
-            throw new Error('Failed to update quiz limit')
+            throw updateError
           }
         }
 
@@ -394,12 +321,12 @@ export default function Quiz() {
       } catch (error) {
         console.error('Error in quiz setup:', error)
         toast.error('Failed to set up quiz. Please try again.')
-      } finally {
-        setIsGenerating(false)
       }
     } catch (error) {
       console.error('Error in quiz setup:', error)
       toast.error('Failed to set up quiz. Please try again.')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -528,8 +455,8 @@ export default function Quiz() {
       <div className="container mx-auto py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Loading Lists</CardTitle>
-            <CardDescription>Please wait while we fetch your vocabulary lists</CardDescription>
+            <CardTitle className="text-2xl">Loading Quiz</CardTitle>
+            <CardDescription>Please wait while we prepare your quiz</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -539,18 +466,68 @@ export default function Quiz() {
     )
   }
 
-  if (!lists.length) {
+  if (!list) {
     return (
       <div className="container mx-auto py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">No Lists Available</CardTitle>
-            <CardDescription>Create a vocabulary list first to start practicing with quizzes</CardDescription>
+            <CardTitle className="text-2xl">List Not Found</CardTitle>
+            <CardDescription>The list you're looking for doesn't exist or you don't have access to it.</CardDescription>
           </CardHeader>
           <CardContent className="text-center py-8">
-            <Button onClick={() => navigate('/lists/create')}>
-              Create Your First List
+            <Button onClick={() => navigate('/practice')}>
+              Back to Practice
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (availableWordCount < 2) {
+    return (
+      <div className="container mx-auto py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Not Enough Words</CardTitle>
+            <CardDescription>You need at least 2 words in your list to start a quiz.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 py-4">
+            <p className="text-center text-muted-foreground">
+              Add more words to your list to start practicing with quizzes.
+            </p>
+            <div className="flex justify-center">
+              <Button onClick={() => navigate(`/lists/${listId}`)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Words to List
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (availableWordCount < MIN_QUIZ_WORDS) {
+    return (
+      <div className="container mx-auto py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Limited Words Available</CardTitle>
+            <CardDescription>
+              You have {availableWordCount} words in your list. Adding more words (at least {MIN_QUIZ_WORDS}) will create a better learning experience!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 py-4">
+            <p className="text-center text-muted-foreground">
+              Add more words to enhance your quiz experience and improve your learning journey.
+            </p>
+            <div className="flex justify-center">
+              <Button onClick={() => navigate(`/lists/${listId}`)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add More Words
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -564,7 +541,7 @@ export default function Quiz() {
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
               <Brain className="h-6 w-6" />
-              AI-Powered Quiz
+              Quiz: {list.name}
             </CardTitle>
             <CardDescription>
               Test your vocabulary knowledge with AI-generated questions
@@ -588,29 +565,12 @@ export default function Quiz() {
                   </p>
                 )}
               </div>
-
-              {/* List Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select List</label>
-                <Select value={selectedListId} onValueChange={setSelectedListId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a list to practice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lists.map((list) => (
-                      <SelectItem key={list.id} value={list.id}>
-                        {list.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button
+            <Button 
               onClick={startQuiz} 
-              disabled={!selectedListId || isGenerating || quizLimit >= DAILY_QUIZ_LIMIT}
+              disabled={isGenerating || quizLimit >= DAILY_QUIZ_LIMIT}
               className="w-full"
             >
               {isGenerating ? (
