@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, HelpCircle } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw, HelpCircle, Volume2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/stores/auth.store"
 import { toast } from "sonner"
@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
 
 interface Word {
   id: string
@@ -57,7 +58,6 @@ export default function Flashcards() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [shuffledWords, setShuffledWords] = useState<Word[]>([])
-  const [loadingProgress, setLoadingProgress] = useState(0)
   const { updateWordReview, isUpdating } = useSpacedRepetition(shuffledWords[currentIndex]?.id)
 
   useEffect(() => {
@@ -88,11 +88,6 @@ export default function Flashcards() {
 
           allWords.push(...data)
           
-          // Update loading progress
-          if (data.length === pageSize) {
-            setLoadingProgress((page + 1) * pageSize)
-          }
-
           if (data.length < pageSize) break
           page++
         }
@@ -111,7 +106,6 @@ export default function Flashcards() {
         navigate(`/lists/${listId}`)
       } finally {
         setIsLoading(false)
-        setLoadingProgress(0)
       }
     }
 
@@ -186,6 +180,13 @@ export default function Flashcards() {
       console.error('Error updating word status:', error)
       toast.error('Failed to update word status')
     }
+  }
+
+  const handleSpeak = (text: string) => {
+    const utterance = new SpeechSynthesisUtterance(text)
+    // Set to English for original words
+    utterance.lang = 'en-US'
+    window.speechSynthesis.speak(utterance)
   }
 
   // Update quality buttons component
@@ -272,25 +273,27 @@ export default function Flashcards() {
     }
   }
 
+  const currentWord = shuffledWords[currentIndex]
+  const progress = ((currentIndex + 1) / shuffledWords.length) * 100
+
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
-        <div className="space-y-4">
-          <div className="h-8 w-32 bg-muted rounded animate-pulse"></div>
-          <div className="h-64 w-full bg-muted rounded animate-pulse"></div>
-          {loadingProgress > 0 && (
-            <div className="text-center text-sm text-muted-foreground">
-              Loading words... ({loadingProgress} loaded)
+      <div className="container mx-auto py-8 max-w-4xl">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="space-y-4 text-center">
+            <div className="animate-spin h-8 w-8 mx-auto">
+              <RotateCcw className="h-8 w-8" />
             </div>
-          )}
+            <p className="text-muted-foreground">Loading flashcards...</p>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (words.length === 0) {
+  if (!words.length) {
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
+      <div className="container mx-auto py-8 max-w-4xl">
         <Button 
           variant="ghost" 
           className="mb-6"
@@ -301,7 +304,7 @@ export default function Flashcards() {
         </Button>
 
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">No Words Found</h1>
+          <h2 className="text-2xl font-bold">No Words Available</h2>
           <p className="text-muted-foreground">Add some words to your list to start practicing!</p>
           <Button onClick={() => navigate(`/lists/${listId}/add-word`)}>
             Add Your First Word
@@ -311,31 +314,22 @@ export default function Flashcards() {
     )
   }
 
-  const currentWord = shuffledWords[currentIndex]
-
   return (
-    <div className="container mx-auto py-8 max-w-2xl">
-      <Button 
-        variant="ghost" 
-        className="mb-6"
-        onClick={() => navigate(`/lists/${listId}`)}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to List
-      </Button>
-
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Flashcards</h1>
-          <div className="flex items-center gap-3">
+    <div className="container mx-auto py-8 max-w-4xl">
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <Button 
+            variant="ghost"
+            onClick={() => navigate(`/lists/${listId}`)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to List
+          </Button>
+          <div className="flex items-center gap-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
+                <Button variant="outline" size="icon">
                   <HelpCircle className="h-4 w-4" />
-                  Help
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -401,49 +395,71 @@ export default function Flashcards() {
             </Button>
           </div>
         </div>
+        <Progress value={progress} className="h-2" />
+        <div className="flex justify-between text-sm text-muted-foreground mt-2">
+          <span>Card {currentIndex + 1} of {shuffledWords.length}</span>
+          <span>{Math.round(progress)}% Complete</span>
+        </div>
+      </div>
 
-        <div className="mt-8">
-          <div className="relative">
+      <div className="mt-8">
+        <div className="relative">
+          <div 
+            className="relative h-64 cursor-pointer bg-card rounded-lg border"
+            onClick={() => !isUpdating && setIsFlipped(!isFlipped)}
+          >
             <div 
-              className="relative h-64 cursor-pointer bg-card rounded-lg border"
-              onClick={() => !isUpdating && setIsFlipped(!isFlipped)}
+              className={`absolute inset-0 w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${
+                isFlipped ? '[transform:rotateY(180deg)]' : ''
+              }`}
             >
-              <div 
-                className={`absolute inset-0 w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${
-                  isFlipped ? '[transform:rotateY(180deg)]' : ''
-                }`}
-              >
-                {/* Front of card */}
-                <div className="absolute inset-0 h-full w-full [backface-visibility:hidden]">
-                  <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
-                    <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-4">{currentWord?.original}</h2>
+              {/* Front of card */}
+              <div className="absolute inset-0 h-full w-full [backface-visibility:hidden]">
+                <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <h2 className="text-2xl font-bold">{currentWord?.original}</h2>
                       {currentWord?.pronunciation && (
-                        <p className="text-muted-foreground">{currentWord.pronunciation}</p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSpeak(currentWord.original)
+                          }}
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
+                    {currentWord?.pronunciation && (
+                      <p className="text-muted-foreground">{currentWord.pronunciation}</p>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Back of card */}
-                <div className="absolute inset-0 h-full w-full [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
-                    <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-4">{currentWord?.translation}</h2>
-                      {currentWord?.example && (
+              {/* Back of card */}
+              <div className="absolute inset-0 h-full w-full [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                <div className="h-full flex items-center justify-center p-6 border rounded-lg bg-card">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-2xl font-bold">{currentWord?.translation}</h2>
+                    {currentWord?.example && (
+                      <div className="mt-4 p-4 bg-muted rounded-lg">
                         <p className="text-muted-foreground italic">"{currentWord.example}"</p>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {isFlipped && <QualityButtons />}
         </div>
 
-        <div className="flex items-center justify-between mt-6">
+        {isFlipped && <QualityButtons />}
+
+        <div className="flex justify-between mt-8">
           <Button
             variant="outline"
             onClick={handlePrevious}
@@ -452,27 +468,24 @@ export default function Flashcards() {
             <ChevronLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          <div className="text-sm text-muted-foreground">
-            {currentIndex + 1} / {words.length}
-          </div>
           <Button
             variant="outline"
             onClick={handleNext}
-            disabled={currentIndex === words.length - 1}
+            disabled={currentIndex === shuffledWords.length - 1}
           >
             Next
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-
-        <Button
-          variant={currentWord.learning_status === 'learned' ? 'destructive' : 'default'}
-          className="w-full"
-          onClick={handleMarkAsLearned}
-        >
-          {currentWord.learning_status === 'learned' ? 'Mark as Still Learning' : 'Mark as Learned'}
-        </Button>
       </div>
+
+      <Button
+        variant={currentWord.learning_status === 'learned' ? 'destructive' : 'default'}
+        className="w-full mt-8"
+        onClick={handleMarkAsLearned}
+      >
+        {currentWord.learning_status === 'learned' ? 'Mark as Still Learning' : 'Mark as Learned'}
+      </Button>
     </div>
   )
 } 

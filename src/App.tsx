@@ -119,29 +119,24 @@ export default function App() {
                     <ListInsights />
                   </ProtectedRoute>
                 } />
-                <Route path="/practice" element={
-                  <ProtectedRoute>
-                    <Practice />
-                  </ProtectedRoute>
-                } />
-                <Route path="/practice/flashcards" element={
-                  <ProtectedRoute>
-                    <Flashcards />
-                  </ProtectedRoute>
-                } />
-                <Route path="/practice/quiz" element={
+                <Route path="/lists/:listId/quiz" element={
                   <ProtectedRoute>
                     <Quiz />
                   </ProtectedRoute>
                 } />
-                <Route path="/practice/writing" element={
+                <Route path="/lists/:listId/writing" element={
                   <ProtectedRoute>
                     <Writing />
                   </ProtectedRoute>
                 } />
-                <Route path="/practice/matching" element={
+                <Route path="/lists/:listId/matching" element={
                   <ProtectedRoute>
                     <Matching />
+                  </ProtectedRoute>
+                } />
+                <Route path="/practice" element={
+                  <ProtectedRoute>
+                    <Practice />
                   </ProtectedRoute>
                 } />
                 <Route path="/signup" element={

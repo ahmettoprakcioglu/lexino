@@ -55,7 +55,6 @@ export default function Matching() {
     setSelectedTranslation,
     resetGame
   } = useMatchingStore()
-  console.log("asdasdasd");
   
 
   useEffect(() => {
