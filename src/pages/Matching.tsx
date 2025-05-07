@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth.store"
 import { useMatchingStore } from "@/stores/matching.store"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
-import { Loader2, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { Loader2, ArrowLeft, CheckCircle2, Plus } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 
 interface Word {
@@ -39,6 +39,9 @@ export default function Matching() {
   const { listId } = useParams()
   const { user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(true)
+  const [list, setList] = useState<{ id: string; name: string } | null>(null)
+  const [availableWordCount, setAvailableWordCount] = useState<number>(0)
+  const MIN_REQUIRED_WORDS = 8
   
   const {
     words,
@@ -55,72 +58,85 @@ export default function Matching() {
     setSelectedTranslation,
     resetGame
   } = useMatchingStore()
-  
 
   useEffect(() => {
-    const fetchWords = async () => {
-      // If we already have words, don't fetch new ones
-      if (words.length > 0) {
-        setIsLoading(false)
-        return
-      }
-
+    const fetchListAndWords = async () => {
       try {
-        if (!user) return
+        if (!user || !listId) return
 
-        const query = supabase
+        // Fetch list details
+        const { data: listData, error: listError } = await supabase
+          .from('lists')
+          .select('id, name')
+          .eq('id', listId)
+          .eq('user_id', user.id)
+          .single()
+
+        if (listError) throw listError
+        setList(listData)
+
+        // Fetch words count
+        const { data: wordsData, error: wordsError } = await supabase
           .from('words')
-          .select('id, original, translation')
-        
-        if (listId) {
-          query.eq('list_id', listId)
-        } else {
-          query.eq('user_id', user.id)
-        }
+          .select('id')
+          .eq('list_id', listId)
+          .eq('user_id', user.id)
 
-        const { data, error } = await query
+        if (wordsError) throw wordsError
+        setAvailableWordCount(wordsData?.length || 0)
 
-        if (error) throw error
-        if (!data?.length) {
-          toast.error("No words found for practice")
+        // If we already have words in the game, don't fetch new ones
+        if (words.length > 0) {
+          setIsLoading(false)
           return
         }
 
-        // Take 8 random words for the game and create separate objects for original and translation
-        const shuffledWords = [...data]
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 8)
-          .flatMap(word => [
-            {
-              ...word,
-              isMatched: false,
-              isSelected: false,
-              side: 'original' as const
-            },
-            {
-              ...word,
-              isMatched: false,
-              isSelected: false,
-              side: 'translation' as const
-            }
-          ])
+        // Only fetch words for the game if we have enough
+        if (wordsData && wordsData.length >= MIN_REQUIRED_WORDS) {
+          const { data: fullWords, error: fullWordsError } = await supabase
+            .from('words')
+            .select('id, original, translation')
+            .eq('list_id', listId)
+            .eq('user_id', user.id)
 
-        // Shuffle only the translations while keeping originals in order
-        const originals = shuffledWords.filter(word => word.side === 'original');
-        const translations = shuffledWords
-          .filter(word => word.side === 'translation')
-          .sort(() => Math.random() - 0.5);
+          if (fullWordsError) throw fullWordsError
 
-        setWords([...originals, ...translations])
+          // Take 8 random words for the game and create separate objects for original and translation
+          const shuffledWords = [...fullWords]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 8)
+            .flatMap(word => [
+              {
+                ...word,
+                isMatched: false,
+                isSelected: false,
+                side: 'original' as const
+              },
+              {
+                ...word,
+                isMatched: false,
+                isSelected: false,
+                side: 'translation' as const
+              }
+            ])
+
+          // Shuffle only the translations while keeping originals in order
+          const originals = shuffledWords.filter(word => word.side === 'original')
+          const translations = shuffledWords
+            .filter(word => word.side === 'translation')
+            .sort(() => Math.random() - 0.5)
+
+          setWords([...originals, ...translations])
+        }
       } catch (error) {
-        console.error('Error fetching words:', error)
-        toast.error('Failed to load words')
+        console.error('Error fetching data:', error)
+        toast.error('Failed to load matching game data')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchWords()
+    fetchListAndWords()
   }, [listId, user, words.length, setWords])
 
   const handleWordClick = (word: MatchingWord, isOriginal: boolean) => {
@@ -225,36 +241,75 @@ export default function Matching() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 max-w-4xl">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+      <div className="container mx-auto py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Loading Matching Game</CardTitle>
+            <CardDescription>Please wait while we prepare your game</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!list) {
+    return (
+      <div className="container mx-auto py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">List Not Found</CardTitle>
+            <CardDescription>The list you're looking for doesn't exist or you don't have access to it.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <Button onClick={() => navigate('/practice')}>
+              Back to Practice
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (availableWordCount < MIN_REQUIRED_WORDS) {
+    return (
+      <div className="container mx-auto py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Not Enough Words</CardTitle>
+            <CardDescription>
+              You need at least {MIN_REQUIRED_WORDS} words in your list to play the matching game. You currently have {availableWordCount} words.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 py-4">
+            <p className="text-center text-muted-foreground">
+              Add more words to start practicing with the matching game.
+            </p>
+            <div className="flex justify-center">
+              <Button onClick={() => navigate(`/lists/${listId}`)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add More Words
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (!words.length) {
     return (
-      <div className="container mx-auto py-8 max-w-4xl">
-        <Button 
-          variant="ghost" 
-          className="mb-6"
-          onClick={() => navigate(`/lists/${listId}`)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to List
-        </Button>
-
+      <div className="container mx-auto py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>No Words Available</CardTitle>
-            <CardDescription>
-              Add some words to your list to start practicing!
-            </CardDescription>
+            <CardTitle className="text-2xl">Start Matching Game</CardTitle>
+            <CardDescription>Match the words with their translations in {list.name}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate(`/lists/${listId}/add-word`)}>
-              Add Your First Word
+          <CardContent className="text-center py-8">
+            <Button onClick={() => window.location.reload()}>
+              Start Game
             </Button>
           </CardContent>
         </Card>
@@ -310,7 +365,6 @@ export default function Matching() {
       </div>
     )
   }
-
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
