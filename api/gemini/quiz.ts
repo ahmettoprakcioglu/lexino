@@ -3,8 +3,13 @@ import { GoogleGenAI } from '@google/genai';
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
+const allowedOrigin =
+  process.env.NODE_ENV === 'production'
+    ? 'https://lexino.vercel.app'
+    : 'http://localhost:5173';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
