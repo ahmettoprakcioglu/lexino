@@ -11,10 +11,5 @@
   ],
   "buildCommand": "npm run vercel-build",
   "installCommand": "npm install",
-  "framework": "vite",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs16.x"
-    }
-  }
+  "framework": "vite"
 } 
