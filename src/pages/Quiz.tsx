@@ -295,6 +295,7 @@ export default function Quiz() {
 
       // Filter and sort words based on spaced repetition algorithm
       const now = new Date()
+      const MIN_QUIZ_WORDS = 5
       const wordsForQuiz = allWords
         .filter(word => {
           // Include words that:
@@ -322,66 +323,39 @@ export default function Quiz() {
           const bLastPracticed = b.last_practiced ? new Date(b.last_practiced).getTime() : 0
           return aLastPracticed - bLastPracticed
         })
-        .slice(0, 5) // Take exactly 5 words for the quiz
 
+      // Early return if not enough words
       if (wordsForQuiz.length < 2) {
         toast.error("Not enough words available for a quiz. Add more words to your list!")
+        setIsGenerating(false)
         return
       }
 
-      // Generate quiz questions using Gemini
-      const quizWords = wordsForQuiz.map(w => ({
-        original: w.original,
-        translation: w.translation
-      }))
-      
+      // Early return if less than minimum recommended words
+      if (wordsForQuiz.length < MIN_QUIZ_WORDS) {
+        toast.warning(`You have ${wordsForQuiz.length} words available for quiz. Adding more words (at least ${MIN_QUIZ_WORDS}) will create a better learning experience!`)
+        setIsGenerating(false)
+        return
+      }
+
+      // Take available words, up to 5
+      const selectedWords = wordsForQuiz.slice(0, MIN_QUIZ_WORDS)
+
       try {
+        // Generate quiz questions using Gemini
+        const quizWords = selectedWords.map(w => ({
+          original: w.original,
+          translation: w.translation
+        }))
+        
         console.log('Sending words to generate quiz:', quizWords)
         const rawQuestions = await generateQuiz(quizWords)
-        console.log('Received raw questions:', rawQuestions)
         
-        if (!Array.isArray(rawQuestions)) {
-          console.error('Invalid response format:', rawQuestions)
-          throw new Error('Invalid response format from quiz generation')
-        }
-
-        // Validate question format and length
-        const isValidQuestion = (q: unknown): q is QuizQuestion => {
-          if (typeof q !== 'object' || q === null) return false
-          
-          const question = q as Partial<QuizQuestion>
-          
-          return typeof question.question === 'string' &&
-            Array.isArray(question.options) &&
-            question.options.length === 4 &&
-            typeof question.correctAnswer === 'string' &&
-            typeof question.explanation === 'string' &&
-            question.options.includes(question.correctAnswer)
-        }
-
-        if (!rawQuestions.every(isValidQuestion)) {
-          console.error('Invalid question format:', rawQuestions)
-          throw new Error('Invalid question format in response')
-        }
-
-        // Ensure we have exactly 5 questions
-        if (rawQuestions.length !== 5) {
-          console.error(`Expected 5 questions, but got ${rawQuestions.length}`)
-          throw new Error('Invalid number of questions received')
-        }
-
         // Add wordId to each question
-        const questionsWithIds = rawQuestions.map((q, index) => {
-          const word = wordsForQuiz[index]
-          if (!word) {
-            console.error(`No word found for question at index ${index}`)
-            throw new Error('Question-word mismatch error')
-          }
-          return {
-            ...q,
-            wordId: word.id
-          }
-        })
+        const questionsWithIds = rawQuestions.map((q, index) => ({
+          ...q,
+          wordId: selectedWords[index].id
+        }))
 
         // Update quiz limit before setting questions
         const today = new Date().toISOString().split('T')[0]
@@ -414,20 +388,18 @@ export default function Quiz() {
           }
         }
 
-        console.log('Setting questions:', questionsWithIds)
         setQuizLimit(prev => prev + 1)
         setQuestions(questionsWithIds)
-        setCurrentQuestionIndex(0) // Reset question index when new questions are set
+        setCurrentQuestionIndex(0)
       } catch (error) {
-        console.error('Error in quiz generation:', error)
-        toast.error(error instanceof Error ? error.message : 'Failed to generate quiz questions. Please try again.')
-        return
+        console.error('Error in quiz setup:', error)
+        toast.error('Failed to set up quiz. Please try again.')
+      } finally {
+        setIsGenerating(false)
       }
     } catch (error) {
       console.error('Error in quiz setup:', error)
       toast.error('Failed to set up quiz. Please try again.')
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -636,7 +608,7 @@ export default function Quiz() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
+            <Button
               onClick={startQuiz} 
               disabled={!selectedListId || isGenerating || quizLimit >= DAILY_QUIZ_LIMIT}
               className="w-full"
