@@ -4,10 +4,11 @@ import { GoogleGenAI } from '@google/genai';
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
   }
 
@@ -35,13 +36,13 @@ Keep the explanation under 100 words.`
     const text = response?.text;
 
     if (!text) {
-      console.error("Gemini returned empty explanation");
+      console.error('Gemini returned no text.');
       return res.status(500).json({ error: 'No response from Gemini API' });
     }
 
     return res.status(200).json({ explanation: text.trim() });
   } catch (error) {
-    console.error('Error generating explanation:', error);
+    console.error('Explanation generation error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

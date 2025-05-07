@@ -4,6 +4,14 @@ import { GoogleGenAI } from '@google/genai';
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -35,14 +43,12 @@ Format your response as a JSON array with objects containing:
       return res.status(500).json({ error: "No response from Gemini API" });
     }
 
-    console.log("Gemini raw text:", text); // ✅ LOG EKLENDİ
-
     const start = text.indexOf("[");
     const end = text.lastIndexOf("]") + 1;
 
     if (start === -1 || end === -1) {
-      console.error("Invalid format from Gemini:", text);
-      return res.status(500).json({ error: "Invalid Gemini response format" });
+      console.error("Gemini returned invalid format:", text);
+      return res.status(500).json({ error: "Invalid response format" });
     }
 
     const jsonStr = text.substring(start, end);
@@ -51,11 +57,11 @@ Format your response as a JSON array with objects containing:
       const parsed = JSON.parse(jsonStr);
       return res.status(200).json(parsed);
     } catch (err) {
-      console.error("JSON parse error:", jsonStr, err); // ✅ LOG EKLENDİ
+      console.error("JSON parse error:", err, jsonStr);
       return res.status(500).json({ error: "Failed to parse Gemini response" });
     }
   } catch (error) {
-    console.error("Quiz generation error:", error); // ✅ LOG EKLENDİ
+    console.error("Quiz generation error:", error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
