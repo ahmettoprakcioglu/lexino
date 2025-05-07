@@ -17,9 +17,10 @@ import { User as UserIcon, LogOut } from "lucide-react"
 
 interface UserMenuProps {
   user: User
+  className?: string
 }
 
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu({ user, className }: UserMenuProps) {
   const navigate = useNavigate()
   const signOut = useAuthStore((state) => state.signOut)
 
@@ -37,7 +38,7 @@ export function UserMenu({ user }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="outline-none">
+        <button className={`outline-none ${className}`}>
           <UserAvatar user={user} className="h-8 w-8 cursor-pointer hover:opacity-90" />
         </button>
       </DropdownMenuTrigger>

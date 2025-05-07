@@ -8,7 +8,7 @@ export function ThemeToggle() {
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className={`
-        relative inline-flex h-9 w-9 items-center justify-center rounded-lg
+        h-8 w-8 flex items-center justify-center rounded-md
         border bg-background transition-colors hover:bg-accent
         ${theme === "dark" ? "border-accent" : "border-input"}
       `}

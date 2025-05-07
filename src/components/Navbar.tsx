@@ -63,9 +63,9 @@ const Navbar = () => {
         {/* Auth Buttons and Theme Toggle */}
         <div className="hidden md:flex items-center space-x-4">
           <ThemeToggle />
-          <div className="h-5 w-[1px] bg-border mx-2" />
+          <div className="h-5 w-[1px] bg-border mx-auto" />
           {user ? (
-            <UserMenu user={user} />
+            <UserMenu user={user} className="ml-2" />
           ) : (
             <>
               <Link to="/signin">
