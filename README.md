@@ -1,54 +1,89 @@
-# React + TypeScript + Vite
+# Lexino - Intelligent Language Learning Platform 🌍
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Lexino is a modern language learning platform powered by an AI-driven spaced repetition system. It provides an intelligent system that optimizes users' language learning process and enhances their learning habits.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Smart Spaced Repetition System**
+  - Advanced learning system based on SuperMemo 2 algorithm
+  - Performance trend analysis
+  - Streak tracking and rewards
+  - Personalized review intervals
 
-## Expanding the ESLint configuration
+- **Learning Goals and Statistics**
+  - Set daily learning targets
+  - Detailed progress statistics
+  - Learning streak tracking
+  - Visual progress charts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Modern User Interface**
+  - Responsive design
+  - User-friendly interface
+  - Dark/Light theme support
+  - Animated transitions
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 🛠️ Technologies
+
+- **Frontend**
+  - React 19
+  - TypeScript
+  - Vite
+  - TailwindCSS
+  - Framer Motion
+  - React Query
+  - Zustand
+  - React Hook Form
+  - Radix UI
+
+- **Backend**
+  - Supabase
+  - Node.js
+  - PostgreSQL
+
+## 📦 Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/ahmettoprakcioglu/lexino.git
+cd lexino
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. Install dependencies:
+```bash
+npm install
 ```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+## 🔧 Environment Variables
+
+The following environment variables need to be defined in your `.env` file for the project to function:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 👥 Team
+
+- Project Owner - [@Kaan](https://github.com/ahmettoprakcioglu)
+
+---
+
+⭐️ If you find this project helpful, don't forget to give it a star!
