@@ -285,10 +285,10 @@ export default function Quiz() {
         console.log('Sending words to generate quiz:', quizWords)
         const rawQuestions = await generateQuiz(quizWords)
 
-        // Add wordId to each question
+        // Add wordId to each question, ensuring index is within bounds
         const questionsWithIds = rawQuestions.map((q: QuizQuestion, index: number) => ({
           ...q,
-          wordId: selectedWords[index].id
+          wordId: index < selectedWords.length ? selectedWords[index].id : selectedWords[0].id
         }))
 
         // Update quiz limit
